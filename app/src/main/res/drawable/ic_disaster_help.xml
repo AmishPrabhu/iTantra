@@ -1,0 +1,51 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Person in Distress (Left / Center) -->
+    <!-- Head -->
+    <path
+        android:fillColor="#F1F5F9"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5"
+        android:pathData="M26,16 A5,5 0 1,0 26,26 A5,5 0 1,0 26,16 Z" />
+    <!-- Arm holding head -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M23,28 L15,22 L18,17 L24,18" />
+    <!-- Right Arm -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M29,28 L35,38 L36,46" />
+    <!-- Torso & Legs -->
+    <path
+        android:fillColor="#F1F5F9"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.8"
+        android:strokeLineJoin="round"
+        android:pathData="M23,28 L29,28 L29,46 L31,58 L27,58 L26,48 L25,48 L24,58 L20,58 L23,46 Z" />
+    <!-- Warning Alert Triangle (Top Right) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5"
+        android:strokeLineJoin="round"
+        android:pathData="M46,10 L58,30 L34,30 Z" />
+    <!-- Exclamation Mark inside Triangle -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M46,16 L46,23" />
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M46,26 A1.2,1.2 0 1,0 46,28.4 A1.2,1.2 0 1,0 46,26 Z" />
+</vector>

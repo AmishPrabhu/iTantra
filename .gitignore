@@ -1,0 +1,36 @@
+# Built application files
+*.apk
+*.aar
+# Do not ignore sherpa-onnx aar required for the project build
+!app/libs/sherpa-onnx-1.13.8.aar
+
+# Gradle files
+.gradle/
+build/
+*/build/
+app/build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log files
+*.log
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+.navigation/
+captures/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Android NDK / CMake
+.cxx/
+app/.cxx/
+.externalNativeBuild/
+app/.externalNativeBuild/
+
+# Kotlin
+.kotlin/

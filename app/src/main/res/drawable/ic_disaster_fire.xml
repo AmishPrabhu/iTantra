@@ -1,0 +1,35 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Border Outer Frame (Safety Sign Style) -->
+    <path
+        android:strokeColor="#EA580C"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M8,12 L56,12 A4,4 0 0,1 60,16 L60,48 A4,4 0 0,1 56,52 L8,52 A4,4 0 0,1 4,48 L4,16 A4,4 0 0,1 8,12 Z" />
+    <!-- Fire Container Box (Right) -->
+    <path
+        android:fillColor="#EA580C"
+        android:pathData="M34,14 L56,14 A2,2 0 0,1 58,16 L58,48 A2,2 0 0,1 56,50 L34,50 Z" />
+    <!-- White Flame inside Fire Box -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,20 C46,25 43,27 45,30 C47,27 50,29 49,33 C53,30 54,35 53,40 C52,44 48,46 44,46 C39,46 36,43 37,38 C37,34 40,32 39,28 C41,31 43,30 43,26 C43,23 45,21 46,20 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,48 L52,48 L52,49.5 L40,49.5 Z" />
+    <!-- Running Person (Left) -->
+    <!-- Head -->
+    <path
+        android:fillColor="#EA580C"
+        android:pathData="M18,17 A3.5,3.5 0 1,0 18,24 A3.5,3.5 0 1,0 18,17 Z" />
+    <!-- Body & Arms -->
+    <path
+        android:strokeColor="#EA580C"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M18,25 L16,35 L12,41 M16,35 L22,41 L27,45 M17,29 L11,32 M17,29 L23,31 L25,35" />
+</vector>

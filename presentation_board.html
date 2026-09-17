@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>iTantra — Official ISRO Disaster Mesh Communicator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Orbitron:wght@700;800;900&family=Noto+Sans+Devanagari:wght@700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --isro-orange: #F37021;
+      --isro-blue: #0084D6;
+      --space-black: #0B1120;
+      --slate-dark: #1E293B;
+      --border-color: #CBD5E1;
+      --bg-canvas: #ECEFF4;
+      --emergency-red: #DC2626;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: var(--bg-canvas);
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    /* Top Showcase Bar */
+    .showcase-header {
+      width: 1320px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #FFFFFF;
+      padding: 16px 28px;
+      border-radius: 20px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+      margin-bottom: 24px;
+    }
+
+    .header-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-titles h1 {
+      font-size: 20px;
+      font-weight: 900;
+      color: #0F172A;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-titles p {
+      font-size: 12px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    .spec-badge-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .pulse-green {
+      width: 8px;
+      height: 8px;
+      background: #16A34A;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+    }
+
+    /* 3-Phone Stage */
+    .stage-row {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+      width: 1320px;
+    }
+
+    .phone-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .col-header-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1E293B;
+    }
+
+    /* Phone Chassis Hardware */
+    .phone {
+      width: 380px;
+      height: 800px;
+      background: #FFFFFF;
+      border-radius: 48px;
+      border: 8px solid #1E293B;
+      box-shadow: 0 25px 55px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px #CBD5E1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .punch-hole {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 13px;
+      height: 13px;
+      background: #1E293B;
+      border-radius: 50%;
+      z-index: 50;
+    }
+
+    .status-bar {
+      padding: 12px 20px 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: #334155;
+      z-index: 10;
+    }
+
+    .screen-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 12px 18px 20px;
+    }
+
+    /* SVG LOGO COMPONENT */
+    .isro-itantra-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 64px;
+    }
+
+    .logo-hindi {
+      font-family: 'Noto Sans Devanagari', sans-serif;
+      font-size: 34px;
+      font-weight: 900;
+      color: var(--isro-orange);
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-chevron-svg {
+      width: 44px;
+      height: 64px;
+    }
+
+    .logo-eng {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 30px;
+      font-weight: 900;
+      color: var(--isro-blue);
+      line-height: 1;
+      letter-spacing: -0.6px;
+      text-transform: lowercase;
+      border-top: 3.5px solid var(--isro-blue);
+      padding-top: 3px;
+    }
+
+    /* ================= SCREEN 1: ONBOARDING & TRANSPORT ================= */
+    .onboard-top-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 8px 0 16px;
+    }
+
+    .onboard-top-logo p {
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      margin-top: 6px;
+    }
+
+    /* Transport Selector Box */
+    .transport-selector-card {
+      background: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+
+    .transport-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .transport-options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .transport-chip {
+      border: 1.5px solid #CBD5E1;
+      background: #FFFFFF;
+      border-radius: 10px;
+      padding: 7px 6px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .transport-chip.active-wfd {
+      border-color: var(--isro-blue);
+      background: #EBF6FD;
+    }
+
+    .transport-chip.active-bt {
+      border-color: var(--isro-orange);
+      background: #FFF4EC;
+    }
+
+    .tc-name {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .tc-desc {
+      font-size: 9px;
+      font-weight: 600;
+      color: #64748B;
+    }
+
+    .transport-chip.active-wfd .tc-name {
+      color: var(--isro-blue);
+    }
+
+    .transport-chip.active-bt .tc-name {
+      color: var(--isro-orange);
+    }
+
+    /* Language Selection */
+    .lang-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #1E293B;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .lang-grid-pills {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+
+    .lang-pill-item {
+      border: 1.5px solid #CBD5E1;
+      background: #FFFFFF;
+      border-radius: 9999px;
+      padding: 8px 0;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1E293B;
+    }
+
+    .lang-pill-item.selected {
+      background: var(--isro-orange);
+      border-color: var(--isro-orange);
+      color: #FFFFFF;
+      box-shadow: 0 3px 10px rgba(243, 112, 33, 0.3);
+    }
+
+    .btn-enter-channel {
+      margin-top: auto;
+      background: var(--isro-orange);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 9999px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 0 4px 14px rgba(243, 112, 33, 0.35);
+    }
+
+    /* ================= SCREEN 2: WALKIE TALKIE ================= */
+    .walkie-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .transport-live-switch {
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      border-radius: 9999px;
+      padding: 3px 4px;
+      display: flex;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .tls-tab {
+      padding: 3px 8px;
+      border-radius: 9999px;
+      color: #64748B;
+    }
+
+    .tls-tab.active-blue {
+      background: var(--isro-blue);
+      color: #FFFFFF;
+    }
+
+    .tls-tab.active-orange {
+      background: var(--isro-orange);
+      color: #FFFFFF;
+    }
+
+    .lang-bridge-hud {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .lb-hud-col {
+      text-align: center;
+    }
+
+    .lb-hud-lbl {
+      font-size: 10px;
+      font-weight: 600;
+      color: #64748B;
+      margin-bottom: 2px;
+    }
+
+    .lb-hud-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .responder-link-bar {
+      background: #F8FAFC;
+      border: 1.5px dashed #CBD5E1;
+      border-radius: 12px;
+      padding: 6px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rlb-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #334155;
+    }
+
+    .rlb-left strong {
+      color: var(--isro-blue);
+      font-weight: 800;
+    }
+
+    .rlb-tag {
+      background: var(--isro-blue);
+      color: #FFFFFF;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 9999px;
+    }
+
+    /* PTT Dial Area */
+    .ptt-stage-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0 16px;
+    }
+
+    .ptt-glow-ring {
+      width: 175px;
+      height: 175px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 6px solid var(--isro-orange);
+      box-shadow: 0 10px 28px -4px rgba(243, 112, 33, 0.32), 0 0 0 8px #FFEDD5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--isro-orange);
+    }
+
+    .ptt-lbl-text {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      color: #334155;
+    }
+
+    .waveform-bars-box {
+      display: flex;
+      gap: 3.5px;
+      height: 24px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .wave-line {
+      width: 3px;
+      background: var(--isro-orange);
+      border-radius: 2px;
+    }
+
+    /* Last Sent Message */
+    /* AI Voice Pipeline HUD */
+    .pipeline-strip-board {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 5px 8px;
+      margin-bottom: 8px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .pipe-step-board {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      color: #334155;
+    }
+
+    .pipe-badge-stt {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 8.5px;
+      font-weight: 900;
+    }
+
+    .pipe-badge-mesh {
+      background: #F3E8FF;
+      color: #7E22CE;
+      border: 1px solid #E9D5FF;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 8.5px;
+      font-weight: 900;
+    }
+
+    .pipe-badge-tts {
+      background: #ECFDF5;
+      color: #047857;
+      border: 1px solid #A7F3D0;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 8.5px;
+      font-weight: 900;
+    }
+
+    .pipe-arrow-board {
+      color: #94A3B8;
+      font-size: 10px;
+    }
+
+    .msg-live-card {
+      background: #FFFFFF;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 8px 10px;
+      margin-top: auto;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .mlc-divider {
+      height: 1px;
+      background: #F1F5F9;
+      margin: 5px 0;
+    }
+
+    .step-pill-stt {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      font-size: 8.5px;
+      font-weight: 900;
+      padding: 2px 5px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+
+    .step-pill-tts {
+      background: #ECFDF5;
+      color: #047857;
+      font-size: 8.5px;
+      font-weight: 900;
+      padding: 2px 5px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+
+    .tts-sound-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      color: #059669;
+      font-size: 9.5px;
+      font-weight: 800;
+    }
+
+    .mlc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748B;
+      margin-bottom: 2px;
+    }
+
+    .mlc-orig {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .mlc-trans {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--isro-blue);
+      margin-top: 1px;
+    }
+
+    .bottom-nav-row {
+      display: flex;
+      justify-content: space-around;
+      border-top: 1px solid #E2E8F0;
+      padding-top: 10px;
+    }
+
+    .nav-tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #64748B;
+    }
+
+    .nav-tab-item.active {
+      color: var(--isro-orange);
+    }
+
+    /* ================= SCREEN 3: ALERTS ================= */
+    .alert-top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .alert-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--emergency-red);
+    }
+
+    .alert-badge-chip {
+      background: #FEE2E2;
+      color: var(--emergency-red);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 9999px;
+    }
+
+    .alert-tiles-grid-matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex: 1;
+    }
+
+    .alert-grid-card {
+      border: 2px solid #E2E8F0;
+      border-radius: 20px;
+      padding: 14px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .agc-badge {
+      width: 76px;
+      height: 76px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .agc-badge svg {
+      width: 54px;
+      height: 54px;
+    }
+
+    .badge-flood {
+      background: #E0F2FE;
+      color: #0284C7;
+    }
+
+    .badge-medical {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+
+    .badge-fire {
+      background: #FFEDD5;
+      color: #EA580C;
+    }
+
+    .badge-quake {
+      background: #FEF3C7;
+      color: #D97706;
+    }
+
+    .badge-evac {
+      background: #F3E8FF;
+      color: #9333EA;
+    }
+
+    .badge-help {
+      background: #DBEAFE;
+      color: #2563EB;
+    }
+
+    .agc-hi {
+      font-size: 18px;
+      font-weight: 900;
+      color: #0F172A;
+      line-height: 1.2;
+    }
+
+    .agc-en {
+      font-size: 11px;
+      font-weight: 800;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 3px;
+    }
+
+    .btn-speak-custom-sos {
+      margin-top: auto;
+      border: 1.5px solid var(--emergency-red);
+      background: #FFFFFF;
+      color: var(--emergency-red);
+      border-radius: 9999px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top Showcase Header -->
+  <header class="showcase-header">
+    <div class="header-logo-group">
+      <!-- itantra Logo Vector -->
+      <div class="isro-itantra-logo">
+        <svg class="logo-chevron-svg" viewBox="0 0 60 90" fill="none">
+          <!-- Orange Chevron -->
+          <polygon points="30,4 52,78 30,62 8,78" fill="#F37021" />
+          <!-- Blue Solar Wings -->
+          <line x1="4" y1="36" x2="56" y2="48" stroke="#0084D6" stroke-width="4" stroke-linecap="round" />
+          <rect x="8" y="32" width="10" height="7" fill="#0084D6" rx="1.5" />
+          <rect x="42" y="40" width="10" height="7" fill="#0084D6" rx="1.5" />
+        </svg>
+        <span class="logo-eng">itantra</span>
+      </div>
+      <div class="header-titles" style="margin-left: 12px;">
+        <h1>Disaster Voice Mesh System</h1>
+        <p>100% Offline Multi-Lingual Walkie-Talkie • English + 10 Indian Languages</p>
+      </div>
+    </div>
+
+    <div class="spec-badge-right">
+      <div class="pulse-green"></div>
+      <span>WI-FI DIRECT + BLUETOOTH SPP DUAL-MESH</span>
+    </div>
+  </header>
+
+  <!-- 3-Phone Showcase Row -->
+  <main class="stage-row">
+
+    <!-- Phone 1: Onboarding + Protocol Selection -->
+    <div class="phone-col">
+      <div class="col-header-text">1. Setup, Transport & Language Selection</div>
+      <div class="phone">
+        <div class="punch-hole"></div>
+        <div class="status-bar">
+          <span>9:30</span>
+          <span style="font-size: 11px; font-weight: 800; color: var(--isro-blue);">MESH STANDBY • 94%</span>
+        </div>
+
+        <div class="screen-body">
+          <div class="onboard-top-logo">
+            <div class="isro-itantra-logo">
+              <svg class="logo-chevron-svg" viewBox="0 0 60 90" fill="none">
+                <polygon points="30,4 52,78 30,62 8,78" fill="#F37021" />
+                <line x1="4" y1="36" x2="56" y2="48" stroke="#0084D6" stroke-width="4" stroke-linecap="round" />
+                <rect x="8" y="32" width="10" height="7" fill="#0084D6" rx="1.5" />
+                <rect x="42" y="40" width="10" height="7" fill="#0084D6" rx="1.5" />
+              </svg>
+              <span class="logo-eng">itantra</span>
+            </div>
+            <p>Offline Voice Mesh for Disaster Rescue</p>
+          </div>
+
+          <!-- Transport Selector -->
+          <div class="transport-selector-card">
+            <div class="transport-label">
+              <span>Mesh Transport Protocol</span>
+              <span style="color: var(--isro-blue);">P2P Direct</span>
+            </div>
+            <div class="transport-options-grid">
+              <div class="transport-chip active-wfd">
+                <span class="tc-name">Wi-Fi Direct</span>
+                <span class="tc-desc">High Range (~150m)</span>
+              </div>
+              <div class="transport-chip active-bt">
+                <span class="tc-name">Bluetooth SPP</span>
+                <span class="tc-desc">Low Power Mesh</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Language Selection -->
+          <div class="lang-section-title">
+            <span>Select Preferred Language</span>
+            <span style="color: var(--isro-orange); font-size: 11px;">10 Indian + Eng</span>
+          </div>
+
+          <div class="lang-grid-pills">
+            <div class="lang-pill-item">English</div>
+            <div class="lang-pill-item">தமிழ்</div>
+            <div class="lang-pill-item selected">हिंदी</div>
+            <div class="lang-pill-item">తెలుగు</div>
+            <div class="lang-pill-item">ಕನ್ನಡ</div>
+            <div class="lang-pill-item">മലയാളം</div>
+            <div class="lang-pill-item">ગુજરાતી</div>
+            <div class="lang-pill-item">मराठी</div>
+            <div class="lang-pill-item">ଓଡ଼ିଆ</div>
+            <div class="lang-pill-item">বাংলা</div>
+            <div class="lang-pill-item">ਪੰਜਾਬੀ</div>
+          </div>
+
+          <button class="btn-enter-channel">Enter Walkie-Talkie ➔</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone 2: Main Tactical Walkie-Talkie -->
+    <div class="phone-col">
+      <div class="col-header-text">2. Main Tactical Walkie-Talkie (Transmitter & Receiver)</div>
+      <div class="phone">
+        <div class="punch-hole"></div>
+        <div class="status-bar">
+          <span>9:30</span>
+          <span style="font-size: 11px; font-weight: 800; color: #16A34A;">● 4 Nodes Online</span>
+        </div>
+
+        <div class="screen-body">
+          <div class="walkie-header-row">
+            <div class="isro-itantra-logo" style="transform: scale(0.75); transform-origin: left center;">
+              <svg class="logo-chevron-svg" viewBox="0 0 60 90" fill="none">
+                <polygon points="30,4 52,78 30,62 8,78" fill="#F37021" />
+                <line x1="4" y1="36" x2="56" y2="48" stroke="#0084D6" stroke-width="4" stroke-linecap="round" />
+                <rect x="8" y="32" width="10" height="7" fill="#0084D6" rx="1.5" />
+                <rect x="42" y="40" width="10" height="7" fill="#0084D6" rx="1.5" />
+              </svg>
+              <span class="logo-eng">itantra</span>
+            </div>
+
+            <!-- Transport Active Switcher -->
+            <div class="transport-live-switch">
+              <span class="tls-tab active-blue">Wi-Fi Direct</span>
+              <span class="tls-tab active-orange">BT Mesh</span>
+            </div>
+          </div>
+
+          <!-- 1-to-1 Responder Target Link Bar -->
+          <div class="responder-link-bar">
+            <div class="rlb-left">
+              <span>Target:</span>
+              <strong>📱 Officer Priya (தமிழ்)</strong>
+            </div>
+            <span class="rlb-tag">1-to-1 Linked</span>
+          </div>
+
+          <div class="lang-bridge-hud">
+            <div class="lb-hud-col">
+              <div class="lb-hud-lbl">Speaking in:</div>
+              <div class="lb-hud-val">हिंदी <span style="font-size: 10px; color: var(--isro-orange);">(Auto-LID)</span>
+              </div>
+            </div>
+            <div style="font-size: 16px; font-weight: 800; color: #94A3B8;">➔</div>
+            <div class="lb-hud-col">
+              <div class="lb-hud-lbl">Receiver hears:</div>
+              <div class="lb-hud-val" style="color: var(--isro-blue);">தமிழ்</div>
+            </div>
+          </div>
+
+          <!-- Offline AI Pipeline HUD -->
+          <div class="pipeline-strip-board">
+            <div class="pipe-step-board"><span class="pipe-badge-stt">STT</span> Conformer</div>
+            <span class="pipe-arrow-board">➔</span>
+            <div class="pipe-step-board"><span class="pipe-badge-mesh">Mesh</span> 40B UTF-8</div>
+            <span class="pipe-arrow-board">➔</span>
+            <div class="pipe-step-board"><span class="pipe-badge-tts">TTS</span> Indic Voice</div>
+          </div>
+
+          <!-- PTT Central Stage -->
+          <div class="ptt-stage-box">
+            <div class="ptt-glow-ring">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
+              <span class="ptt-lbl-text">HOLD TO SPEAK</span>
+            </div>
+
+            <div class="waveform-bars-box">
+              <div class="wave-line" style="height: 6px;"></div>
+              <div class="wave-line" style="height: 14px;"></div>
+              <div class="wave-line" style="height: 24px;"></div>
+              <div class="wave-line" style="height: 16px;"></div>
+              <div class="wave-line" style="height: 20px;"></div>
+              <div class="wave-line" style="height: 8px;"></div>
+            </div>
+          </div>
+
+          <!-- Two-Stage STT ➔ TTS Live Card -->
+          <div class="msg-live-card">
+            <div class="mlc-header">
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <span class="step-pill-stt">OFFLINE STT</span>
+                <span style="font-size: 10px; font-weight: 800; color: #475569;">Voice Recognized</span>
+              </div>
+              <span style="color: #16A34A; font-weight: 800; font-size: 10px;">● 100% ACK</span>
+            </div>
+            <div class="mlc-orig">"बाढ़ चेतावनी - सुरक्षित स्थान पर जाएं"</div>
+
+            <div class="mlc-divider"></div>
+
+            <div class="mlc-header">
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <span class="step-pill-tts">OFFLINE TTS</span>
+                <span style="font-size: 10px; font-weight: 800; color: #0284C7;">Priya hears via TTS (தமிழ்)</span>
+              </div>
+              <span class="tts-sound-badge">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                </svg>
+                <span>Synthesized</span>
+              </span>
+            </div>
+            <div class="mlc-trans">"வெள்ள எச்சரிக்கை - பாதுகாப்பான இடத்திற்கு செல்லுங்கள்"</div>
+          </div>
+
+          <div class="bottom-nav-row">
+            <div class="nav-tab-item active">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+              <span>Talk</span>
+            </div>
+            <div class="nav-tab-item">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span>SOS Alert</span>
+            </div>
+            <div class="nav-tab-item">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span>Settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone 3: Emergency Alert Mode -->
+    <div class="phone-col">
+      <div class="col-header-text">3. Emergency Alert Mode (3x Urgent Audio Siren)</div>
+      <div class="phone">
+        <div class="punch-hole"></div>
+        <div class="status-bar">
+          <span>9:30</span>
+          <span style="font-size: 11px; font-weight: 800; color: var(--emergency-red);">PRIORITY 0x00</span>
+        </div>
+
+        <div class="screen-body">
+          <div class="alert-top-nav">
+            <div class="alert-nav-left">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>Alert Mode</span>
+            </div>
+            <div class="alert-badge-chip">3x Urgent Siren</div>
+          </div>
+
+          <div class="alert-tiles-grid-matrix">
+            <!-- 1. Flood: Tsunami engulfing house -->
+            <div class="alert-grid-card">
+              <div class="agc-badge badge-flood">
+                <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+                  <path d="M8,44 C8,22 20,8 34,8 C40,8 44,12 42,18 C40,24 34,26 28,26 C22,26 18,34 18,44 Z"
+                    fill="#0284C7" />
+                  <path d="M34,8 C24,8 12,20 12,42 L52,42 C52,28 44,8 34,8 Z" fill="#0284C7" />
+                  <path d="M34,28 L48,18 L62,28 L62,44 L34,44 Z" fill="#0369A1" />
+                  <path d="M38,30 L48,22 L58,30 L58,42 L38,42 Z" fill="#FFFFFF" />
+                  <path d="M44,32 L52,32 L52,42 L44,42 Z" fill="#0369A1" />
+                  <path
+                    d="M4,44 C10,40 16,40 22,44 C28,48 34,48 40,44 C46,40 52,40 58,44 L58,56 C52,56 46,56 40,56 C34,56 28,56 22,56 C16,56 10,56 4,56 Z"
+                    fill="#0284C7" />
+                </svg>
+              </div>
+              <span class="agc-hi">बाढ़</span>
+              <span class="agc-en">Flood</span>
+            </div>
+
+            <!-- 2. Medical: Fast Ambulance with Red Cross -->
+            <div class="alert-grid-card">
+              <div class="agc-badge badge-medical">
+                <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+                  <circle cx="22" cy="18" r="7" fill="#DC2626" />
+                  <path d="M20,15 h4 v2 h2 v2 h-2 v4 h-4 v-4 h-2 v-2 h2 z" fill="#FFFFFF" />
+                  <path d="M44,18 L48,18 L50,22 L42,22 Z" fill="#DC2626" />
+                  <path
+                    d="M16,26 L46,26 L52,32 L58,34 L58,46 L52,46 A4,4 0 0,1 44,46 L28,46 A4,4 0 0,1 20,46 L12,46 L12,30 C12,27.8 13.8,26 16,26 Z"
+                    fill="#DC2626" />
+                  <rect x="20" y="30" width="10" height="7" fill="#BAE6FD" />
+                  <rect x="34" y="30" width="12" height="7" fill="#BAE6FD" />
+                  <path d="M6,30 L10,30 M4,34 L10,34 M6,38 L10,38 M4,42 L10,42" stroke="#DC2626" stroke-width="2"
+                    stroke-linecap="round" />
+                  <circle cx="24" cy="46" r="3.5" fill="#1E293B" />
+                  <circle cx="48" cy="46" r="3.5" fill="#1E293B" />
+                </svg>
+              </div>
+              <span class="agc-hi">चिकित्सा</span>
+              <span class="agc-en">Medical</span>
+            </div>
+
+            <!-- 3. Fire: Person running from blaze -->
+            <div class="alert-grid-card">
+              <div class="agc-badge badge-fire">
+                <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+                  <rect x="6" y="10" width="52" height="44" rx="4" stroke="#EA580C" stroke-width="2.5" />
+                  <path d="M34,12 L56,12 A2,2 0 0,1 58,14 L58,50 A2,2 0 0,1 56,52 L34,52 Z" fill="#EA580C" />
+                  <path
+                    d="M46,18 C46,23 43,25 45,28 C47,25 50,27 49,31 C53,28 54,33 53,38 C52,42 48,44 44,44 C39,44 36,41 37,36 C37,32 40,30 39,26 C41,29 43,28 43,24 C43,21 45,19 46,18 Z"
+                    fill="#FFFFFF" />
+                  <circle cx="18" cy="20" r="3.5" fill="#EA580C" />
+                  <path d="M18,24 L16,34 L12,40 M16,34 L22,40 L26,44 M17,28 L11,31 M17,28 L23,30 L25,34"
+                    stroke="#EA580C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <span class="agc-hi">आग</span>
+              <span class="agc-en">Fire</span>
+            </div>
+
+            <!-- 4. Earthquake: Building shaking on cracked ground -->
+            <div class="alert-grid-card">
+              <div class="agc-badge badge-quake">
+                <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+                  <rect x="34" y="14" width="18" height="26" rx="1" fill="#E2E8F0" stroke="#1E293B" stroke-width="2" />
+                  <rect x="37" y="17" width="4" height="4" fill="#38BDF8" />
+                  <rect x="44" y="17" width="4" height="4" fill="#38BDF8" />
+                  <rect x="37" y="24" width="4" height="4" fill="#38BDF8" />
+                  <rect x="44" y="24" width="4" height="4" fill="#38BDF8" />
+                  <path
+                    d="M29,18 C28,20 30,22 29,24 M29,28 C28,30 30,32 29,34 M56,18 C57,20 55,22 56,24 M56,28 C57,30 55,32 56,34"
+                    stroke="#D97706" stroke-width="2" stroke-linecap="round" />
+                  <path
+                    d="M18,22 C14,22 12,26 14,29 C11,31 12,36 16,36 C17,38 21,38 23,36 C26,35 26,30 23,28 C25,24 22,22 18,22 Z"
+                    fill="#84CC16" />
+                  <rect x="18" y="35" width="3" height="7" fill="#78350F" />
+                  <path d="M6,42 L24,40 L28,45 L36,41 L58,41 L58,54 L6,54 Z" fill="#D97706" stroke="#1E293B"
+                    stroke-width="1.8" />
+                  <path d="M24,40 L22,46 L27,50 M36,41 L38,47 L43,49" stroke="#1E293B" stroke-width="1.8"
+                    stroke-linecap="round" />
+                </svg>
+              </div>
+              <span class="agc-hi">भूकंप</span>
+              <span class="agc-en">Earthquake</span>
+            </div>
+
+            <!-- 5. Evacuate: ISO 7010 Emergency Exit -->
+            <div class="alert-grid-card">
+              <div class="agc-badge badge-evac">
+                <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+                  <path d="M22,12 L38,12 L38,52 L22,52" stroke="#1E293B" stroke-width="3" fill="none" />
+                  <path d="M38,12 L52,16 L52,56 L38,52 Z" fill="#9333EA" stroke="#1E293B" stroke-width="2.2" />
+                  <circle cx="26" cy="18" r="3.5" fill="#1E293B" />
+                  <path d="M26,26 L22,35 L15,39 M22,35 L28,43 L28,50 M15,30 L22,28 L29,31 L34,30" stroke="#1E293B"
+                    stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <span class="agc-hi">खाली</span>
+              <span class="agc-en">Evacuate</span>
+            </div>
+
+            <!-- 6. Help: Person in distress with hazard alert -->
+            <div class="alert-grid-card">
+              <div class="agc-badge badge-help">
+                <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
+                  <circle cx="26" cy="16" r="4.5" fill="#F1F5F9" stroke="#1E293B" stroke-width="2.2" />
+                  <path d="M23,26 L15,20 L18,16 L24,17" stroke="#1E293B" stroke-width="2.8" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                  <path d="M29,26 L35,36 L36,44" stroke="#1E293B" stroke-width="2.8" stroke-linecap="round" />
+                  <path d="M23,26 L29,26 L29,44 L31,56 L27,56 L26,46 L25,46 L24,56 L20,56 L23,44 Z" fill="#F1F5F9"
+                    stroke="#1E293B" stroke-width="2.4" />
+                  <path d="M46,10 L58,30 L34,30 Z" fill="#F59E0B" stroke="#1E293B" stroke-width="2.2"
+                    stroke-linejoin="round" />
+                  <path d="M46,16 L46,23" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round" />
+                  <circle cx="46" cy="26.5" r="1.2" fill="#1E293B" />
+                </svg>
+              </div>
+              <span class="agc-hi">मदद</span>
+              <span class="agc-en">Help</span>
+            </div>
+          </div>
+
+          <div class="btn-speak-custom-sos">
+            <span>Speak Custom Alert</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Architecture & Innovation Pillars Grid -->
+  <section style="max-width: 1300px; margin: 36px auto 20px; padding: 0 16px;">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="font-size: 20px; font-weight: 900; color: #0F172A; text-transform: uppercase; letter-spacing: 0.5px;">
+        Core Disaster Engineering Stack</h2>
+      <p style="font-size: 13px; color: #64748B; margin-top: 4px;">Verified Zero-Failure Innovations engineered for ISRO
+        & NDRF First Responders</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="font-size: 13px; font-weight: 900; color: var(--isro-blue); margin-bottom: 4px;">1. Dual-Mesh
+          Transport (Wi-Fi + BT)</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">Wi-Fi Direct P2P (~150m range) + Bluetooth SPP
+          mesh failover with 2s heartbeat keepalive.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="font-size: 13px; font-weight: 900; color: var(--isro-blue); margin-bottom: 4px;">2. Spoken Language
+          Auto-Detection (LID)</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">Analyzes first 1000ms acoustic features to
+          classify language automatically without pre-selection.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); border-left: 4px solid #2563EB;">
+        <div style="font-size: 13px; font-weight: 900; color: #2563EB; margin-bottom: 4px;">3. Offline Indic STT (ASR
+          Engine)</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">8-bit quantized Conformer-CTC transcribes
+          continuous speech locally in &lt;180ms with 0% internet reliance.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); border-left: 4px solid #10B981;">
+        <div style="font-size: 13px; font-weight: 900; color: #10B981; margin-bottom: 4px;">4. Receiver-Side Neural
+          Translation & TTS</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">IndicTrans2 translates ~40B UTF-8 text; local
+          VITS/FastSpeech2 synthesizes natural voice in receiver's language.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="font-size: 13px; font-weight: 900; color: var(--isro-orange); margin-bottom: 4px;">5. Zero-Loss DTN
+          Store-and-Forward</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">Persistent Room DB store with 3.0s retry
+          watchdog ensuring 100% ACK delivery across radio dropouts.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="font-size: 13px; font-weight: 900; color: var(--emergency-red); margin-bottom: 4px;">6. 0ms
+          Emergency Fast-Path (3x Siren + STREAM_ALARM)</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">Single-tap triggers 3x repeated tactical siren
+          translated into receiver's tongue with exclusive DND-bypass audio focus.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="font-size: 13px; font-weight: 900; color: #0F172A; margin-bottom: 4px;">7. Lock-Free Pre-Roll Ring
+          Buffer (C++ Oboe)</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">300ms continuous circular audio buffer ensures
+          the first consonant or syllable is never truncated.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="font-size: 13px; font-weight: 900; color: #0F172A; margin-bottom: 4px;">8. Mathematical RMS Energy
+          Gate (&lt;0.001% CPU)</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">Mathematical silence filter prevents
+          background battery drain before waking neural VAD.</div>
+      </div>
+
+      <div
+        style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div style="font-size: 13px; font-weight: 900; color: #0F172A; margin-bottom: 4px;">9. Zero-Copy Memory-Mapped
+          Model Loader</div>
+        <div style="font-size: 11.5px; color: #475569; line-height: 1.4;">Direct flash-to-virtual-memory weight mapping
+          eliminates JVM heap bloat and Out-Of-Memory crashes.</div>
+      </div>
+    </div>
+  </section>
+
+</body>
+
+</html>

@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Open Doorway Frame -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3.2"
+        android:fillColor="#00000000"
+        android:pathData="M24,12 L40,12 L40,54 L24,54" />
+    <!-- 3D Open Door Panel -->
+    <path
+        android:fillColor="#9333EA"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5"
+        android:pathData="M40,12 L54,16 L54,58 L40,54 Z" />
+    <!-- Running Figure (Silhouette) -->
+    <!-- Head -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M28,19 A4,4 0 1,0 28,27 A4,4 0 1,0 28,19 Z" />
+    <!-- Body & Limbs -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M28,28 L24,38 L16,42 M24,38 L30,46 L30,54 M16,33 L23,31 L31,34 L36,33" />
+</vector>

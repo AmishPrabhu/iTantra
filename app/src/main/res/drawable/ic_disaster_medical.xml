@@ -1,0 +1,52 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Red Cross Badge Top Left -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M22,14 A8,8 0 1,0 22,30 A8,8 0 1,0 22,14 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,18 L24,18 L24,21 L27,21 L27,23 L24,23 L24,26 L20,26 L20,23 L17,23 L17,21 L20,21 Z" />
+    <!-- Flashing Siren Light -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M44,20 L48,20 L50,26 L42,26 Z" />
+    <path
+        android:strokeColor="#EA580C"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M41,16 L39,13 M46,14 L46,11 M51,16 L53,13" />
+    <!-- Ambulance Body -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M16,30 L46,30 L52,36 L58,38 L58,50 L52,50 A5,5 0 0,1 42,50 L28,50 A5,5 0 0,1 18,50 L12,50 L12,34 C12,31.8 13.8,30 16,30 Z" />
+    <!-- Windows -->
+    <path
+        android:fillColor="#BAE6FD"
+        android:pathData="M20,34 L32,34 L32,42 L20,42 Z" />
+    <path
+        android:fillColor="#BAE6FD"
+        android:pathData="M34,34 L45,34 L49,42 L34,42 Z" />
+    <!-- Speed Lines -->
+    <path
+        android:strokeColor="#DC2626"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M6,34 L10,34 M4,38 L10,38 M6,42 L10,42 M4,46 L10,46" />
+    <!-- Wheels -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M23,50 A4.5,4.5 0 1,0 23,41 A4.5,4.5 0 1,0 23,50 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M23,48 A2,2 0 1,0 23,44 A2,2 0 1,0 23,48 Z" />
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M47,50 A4.5,4.5 0 1,0 47,41 A4.5,4.5 0 1,0 47,50 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M47,48 A2,2 0 1,0 47,44 A2,2 0 1,0 47,48 Z" />
+</vector>
