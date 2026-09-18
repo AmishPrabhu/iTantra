@@ -99,7 +99,80 @@ object PacketProtocol {
         return encodePacket(TYPE_ACK, Language.ENGLISH, sequenceId, "ACK")
     }
 
-    fun createHeartbeatPacket(): ByteArray {
-        return encodePacket(TYPE_HEARTBEAT_PING, Language.ENGLISH, 0, "PING")
+    data class HeartbeatInfo(
+        val nodeId: String,
+        val deviceName: String,
+        val language: Language,
+        val timestamp: Long
+    )
+
+    fun encodeHeartbeatPayload(
+        nodeId: String,
+        deviceName: String,
+        lang: Language,
+        timestamp: Long = System.currentTimeMillis()
+    ): String {
+        val sanitizedName = deviceName.replace("|", " ").trim()
+        return "PING|$nodeId|$sanitizedName|${lang.id}|$timestamp"
+    }
+
+    fun parseHeartbeatPayload(payload: String): HeartbeatInfo? {
+        if (!payload.startsWith("PING|")) return null
+        val parts = payload.split("|")
+        if (parts.size < 4) return null
+        val nodeId = parts[1]
+        val deviceName = parts[2]
+        val langId = parts[3].toByteOrNull() ?: 1
+        val ts = if (parts.size >= 5) parts[4].toLongOrNull() ?: System.currentTimeMillis() else System.currentTimeMillis()
+        return HeartbeatInfo(
+            nodeId = nodeId,
+            deviceName = deviceName,
+            language = Language.fromId(langId),
+            timestamp = ts
+        )
+    }
+
+    data class VoicePayload(
+        val senderNodeId: String,
+        val senderDeviceName: String,
+        val targetNodeId: String, // "ALL" or specific peer nodeId
+        val text: String
+    )
+
+    fun encodeVoicePayload(
+        senderNodeId: String,
+        senderDeviceName: String,
+        targetNodeId: String,
+        text: String
+    ): String {
+        val cleanSender = senderNodeId.replace("|", "_")
+        val cleanName = senderDeviceName.replace("|", " ").trim()
+        val cleanTarget = targetNodeId.replace("|", "_")
+        return "$cleanSender|$cleanName|$cleanTarget|$text"
+    }
+
+    fun parseVoicePayload(payload: String): VoicePayload {
+        val parts = payload.split("|", limit = 4)
+        return if (parts.size == 4) {
+            VoicePayload(
+                senderNodeId = parts[0],
+                senderDeviceName = parts[1],
+                targetNodeId = parts[2],
+                text = parts[3]
+            )
+        } else {
+            // Fallback for legacy un-delimited payloads
+            VoicePayload(
+                senderNodeId = "Peer",
+                senderDeviceName = "Mesh Peer",
+                targetNodeId = "ALL",
+                text = payload
+            )
+        }
+    }
+
+    fun createHeartbeatPacket(nodeId: String = "node_0", deviceName: String = "Mesh Device", lang: Language = Language.HINDI): ByteArray {
+        val payload = encodeHeartbeatPayload(nodeId, deviceName, lang)
+        return encodePacket(TYPE_HEARTBEAT_PING, lang, 0, payload)
     }
 }

@@ -578,7 +578,7 @@ fun WalkieTalkieScreen(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "● 4 Online",
+                            text = "● ${uiState.connectedNodesCount} Online",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = SuccessGreen
@@ -632,7 +632,7 @@ fun WalkieTalkieScreen(
                                     color = TextPrimary
                                 )
                                 Text(
-                                    text = "Transmit speech to all 4 responders in mesh",
+                                    text = "Transmit speech to all ${uiState.connectedNodesCount} responders in mesh",
                                     fontSize = 11.sp,
                                     color = TextMuted
                                 )

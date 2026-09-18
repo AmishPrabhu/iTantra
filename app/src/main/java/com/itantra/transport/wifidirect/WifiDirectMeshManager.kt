@@ -21,7 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  */
 class WifiDirectMeshManager(
     private val context: Context,
-    private val onPacketReceived: (ByteArray) -> Unit
+    private val onPacketReceived: (ByteArray, String) -> Unit
 ) {
 
     private val TAG = "WifiDirectMeshManager"
@@ -36,6 +36,7 @@ class WifiDirectMeshManager(
     private var serverSocket: ServerSocket? = null
     private var udpSocket: DatagramSocket? = null
     private val clientSockets = CopyOnWriteArrayList<Socket>()
+    private val knownPeerIps = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private var isRunning = false
@@ -114,8 +115,12 @@ class WifiDirectMeshManager(
                     val packet = DatagramPacket(buffer, buffer.size)
                     udpSocket?.receive(packet)
                     val receivedBytes = buffer.copyOf(packet.length)
-                    Log.i(TAG, "Received UDP Mesh Packet from ${packet.address.hostAddress}:${packet.port} (${receivedBytes.size} bytes)")
-                    onPacketReceived(receivedBytes)
+                    val senderIp = packet.address?.hostAddress ?: "UDP_Peer"
+                    if (senderIp != "UDP_Peer" && senderIp != "127.0.0.1" && senderIp != "localhost") {
+                        knownPeerIps.add(senderIp)
+                    }
+                    Log.i(TAG, "Received UDP Mesh Packet from $senderIp:${packet.port} (${receivedBytes.size} bytes)")
+                    onPacketReceived(receivedBytes, senderIp)
                 }
             } catch (e: Exception) {
                 if (isRunning) {
@@ -133,7 +138,11 @@ class WifiDirectMeshManager(
 
                 while (isRunning) {
                     val socket = serverSocket?.accept() ?: break
-                    Log.i(TAG, "Wi-Fi Direct client socket connected from ${socket.inetAddress.hostAddress}")
+                    val clientIp = socket.inetAddress?.hostAddress ?: "TCP_Peer"
+                    Log.i(TAG, "Wi-Fi Direct client socket connected from $clientIp")
+                    if (clientIp != "TCP_Peer") {
+                        knownPeerIps.add(clientIp)
+                    }
                     clientSockets.add(socket)
                     launchSocketReader(socket)
                 }
@@ -153,6 +162,7 @@ class WifiDirectMeshManager(
                 socket.connect(InetSocketAddress(hostIp, MESH_PORT), 5000)
 
                 Log.i(TAG, "Connected to Wi-Fi Direct peer: $hostIp")
+                knownPeerIps.add(hostIp)
                 clientSockets.add(socket)
                 launchSocketReader(socket)
             } catch (e: Exception) {
@@ -164,14 +174,15 @@ class WifiDirectMeshManager(
     private fun launchSocketReader(socket: Socket) {
         scope.launch {
             val buffer = ByteArray(4096)
+            val remoteIp = socket.inetAddress?.hostAddress ?: "TCP_Peer"
             try {
                 val inputStream: InputStream = socket.getInputStream()
                 while (isRunning && !socket.isClosed) {
                     val bytesRead = inputStream.read(buffer)
                     if (bytesRead > 0) {
                         val packet = buffer.copyOf(bytesRead)
-                        Log.d(TAG, "Received $bytesRead bytes over Wi-Fi Direct TCP")
-                        onPacketReceived(packet)
+                        Log.d(TAG, "Received $bytesRead bytes over Wi-Fi Direct TCP from $remoteIp")
+                        onPacketReceived(packet, remoteIp)
                     }
                 }
             } catch (e: Exception) {
@@ -193,9 +204,20 @@ class WifiDirectMeshManager(
                     try {
                         val dPacket = DatagramPacket(packetBytes, packetBytes.size, bAddr, MESH_PORT)
                         sendSocket.send(dPacket)
-                        Log.d(TAG, "Dispatched UDP broadcast packet to $bAddr:$MESH_PORT")
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed sending to $bAddr: ${e.message}")
+                    }
+                }
+
+                // 2. Direct Unicast to all discovered peer IPs (bypasses Android hotspot client multicast isolation)
+                for (peerIp in knownPeerIps) {
+                    try {
+                        val peerAddr = InetAddress.getByName(peerIp)
+                        val dPacket = DatagramPacket(packetBytes, packetBytes.size, peerAddr, MESH_PORT)
+                        sendSocket.send(dPacket)
+                        Log.d(TAG, "Dispatched direct unicast mesh packet to $peerIp:$MESH_PORT")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed unicast to $peerIp: ${e.message}")
                     }
                 }
                 sendSocket.close()
@@ -203,7 +225,7 @@ class WifiDirectMeshManager(
                 Log.e(TAG, "UDP Broadcast send error: ${e.message}")
             }
 
-            // 2. Also send over any connected TCP sockets
+            // 3. Also send over any connected TCP sockets
             for (socket in clientSockets) {
                 try {
                     val out: OutputStream = socket.getOutputStream()

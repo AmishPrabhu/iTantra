@@ -64,13 +64,28 @@ class ChunkedTtsEngine(private val context: Context) {
             attempts++
         }
 
-        // Automatic audio volume boost so speaker is heard
+        // Automatic audio volume boost so speaker is heard loudly
         try {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
             val currentVol = audioManager?.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) ?: 0
             val maxVol = audioManager?.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC) ?: 15
-            if (currentVol < (maxVol * 0.4f).toInt()) {
-                audioManager?.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, (maxVol * 0.75f).toInt(), 0)
+            if (currentVol < (maxVol * 0.6f).toInt()) {
+                audioManager?.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, (maxVol * 0.85f).toInt(), 0)
+            }
+            // Request audio focus so background playback is prioritized
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val focusRequest = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                    .setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                    .build()
+                audioManager?.requestAudioFocus(focusRequest)
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager?.requestAudioFocus(null, android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             }
             // Quick audible chime indicating incoming voice broadcast
             val toneGen = android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 85)
@@ -81,9 +96,11 @@ class ChunkedTtsEngine(private val context: Context) {
         val clauses = splitIntoClauses(text)
         Log.i(TAG, "Synthesizing ${clauses.size} clauses for ${targetLanguage.englishName}: '$text'")
 
-        // 2. Play audio stream through TTS
-        for (clause in clauses) {
-            playClause(clause, targetLanguage)
+        // 2. Play audio stream through TTS: flush first chunk, queue subsequent chunks so nothing is truncated
+        for (i in clauses.indices) {
+            val clause = clauses[i]
+            val queueMode = if (i == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+            playClause(clause, targetLanguage, queueMode)
         }
     }
 
@@ -93,7 +110,7 @@ class ChunkedTtsEngine(private val context: Context) {
         return if (rawClauses.isEmpty()) listOf(text) else rawClauses
     }
 
-    private fun playClause(clause: String, language: Language) {
+    private fun playClause(clause: String, language: Language, queueMode: Int = TextToSpeech.QUEUE_FLUSH) {
         if (!isTtsReady || androidTts == null) {
             Log.w(TAG, "TTS engine still not ready, attempting re-init")
             initAndroidTts(activeContext)
@@ -129,8 +146,8 @@ class ChunkedTtsEngine(private val context: Context) {
                 putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
                 putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, android.media.AudioManager.STREAM_MUSIC)
             }
-            val result = androidTts?.speak(speechText, TextToSpeech.QUEUE_FLUSH, params, "chunk_${System.currentTimeMillis()}")
-            Log.i(TAG, "TTS speak command queued (result=$result): '$speechText' (Original: '$clause') in ${language.englishName}")
+            val result = androidTts?.speak(speechText, queueMode, params, "chunk_${System.currentTimeMillis()}")
+            Log.i(TAG, "TTS speak command queued (result=$result, mode=$queueMode): '$speechText' (Original: '$clause') in ${language.englishName}")
         } catch (e: Exception) {
             Log.e(TAG, "TTS playback error: ${e.message}")
         }
@@ -141,17 +158,29 @@ class ChunkedTtsEngine(private val context: Context) {
         if (!hasNonLatin) return text
 
         return when {
+            text.contains("बचाओ") || text.contains("காப்பாற்று") || text.contains("రక్షించ") ||
+            text.contains("वाचवा") || text.contains("বাঁচান") || text.contains("ಉಳಿಸಿ") ||
+            text.contains("രക്ഷിക്കൂ") ->
+                "Emergency save me! Urgent rescue team needed immediately!"
+            text.contains("फंसे") || text.contains("मलबा") || text.contains("சிக்கி") || text.contains("ढिगारा") ->
+                "Survivors trapped under debris! Send rescue tools and cutting equipment!"
+            text.contains("चोट") || text.contains("घायल") || text.contains("காயம்") || text.contains("గాయం") ->
+                "Severe injury reported! Urgent medical aid and stretcher required!"
+            text.contains("पानी") || text.contains("खाना") || text.contains("உணவு") || text.contains("தண்ணீர்") ->
+                "Urgent drinking water and food rations needed at this location!"
             text.contains("साफ") || text.contains("मोकळा") || text.contains("தெளிவாக") ->
-                "Route is clear, safe to advance"
+                "Route is clear, safe to advance!"
             text.contains("बाढ़") || text.contains("पूर") || text.contains("வெள்ள") || text.contains("వరద") ->
-                "Emergency Flood Alert! Water rising, please evacuate to higher ground"
+                "Emergency Flood Alert! Water rising rapidly, please evacuate to higher ground!"
             text.contains("मदद") || text.contains("मदत") || text.contains("உதவி") || text.contains("సహాయం") ->
-                "Emergency help requested, please send rescue assistance"
+                "Emergency help requested! Please dispatch rescue assistance!"
             text.contains("सुरक्षित") || text.contains("safe") ->
-                "We are safe, all team members safe"
+                "We are safe, all personnel accounted for!"
             text.contains("आग") || text.contains("தீ") || text.contains("అగ్ని") ->
-                "Fire emergency alert, evacuate immediately"
-            else -> text
+                "Fire emergency alert! Evacuate area immediately!"
+            text.contains("नमस्ते") || text.contains("வணக்கம்") || text.contains("నమస్కారం") || text.contains("भाई") ->
+                "Hello brother, radio communication established!"
+            else -> "Message received in ${lang.englishName}: $text"
         }
     }
 

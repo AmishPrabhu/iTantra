@@ -69,4 +69,36 @@ class PacketProtocolTest {
         assertEquals(Language.ENGLISH, Language.fromIso("en"))
         assertEquals(Language.BENGALI, Language.fromIso("bn"))
     }
+
+    @Test
+    fun testStructuredHeartbeatPayload() {
+        val nodeId = "node_42a"
+        val deviceName = "Pixel 7 Pro"
+        val lang = Language.TAMIL
+
+        val payload = PacketProtocol.encodeHeartbeatPayload(nodeId, deviceName, lang)
+        assertTrue(payload.startsWith("PING|"))
+
+        val info = PacketProtocol.parseHeartbeatPayload(payload)
+        assertNotNull(info)
+        assertEquals(nodeId, info!!.nodeId)
+        assertEquals(deviceName, info.deviceName)
+        assertEquals(Language.TAMIL, info.language)
+    }
+
+    @Test
+    fun testStructuredVoicePayload() {
+        val senderId = "nd_91"
+        val senderName = "Galaxy S23"
+        val targetId = "ALL"
+        val text = "मुझे बचाओ मुझे बचाओ"
+
+        val payload = PacketProtocol.encodeVoicePayload(senderId, senderName, targetId, text)
+        val decoded = PacketProtocol.parseVoicePayload(payload)
+
+        assertEquals(senderId, decoded.senderNodeId)
+        assertEquals(senderName, decoded.senderDeviceName)
+        assertEquals(targetId, decoded.targetNodeId)
+        assertEquals(text, decoded.text)
+    }
 }

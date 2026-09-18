@@ -34,15 +34,14 @@ class MainActivity : ComponentActivity() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val allGranted = permissions.values.all { it }
-        if (allGranted) {
-            startMeshService()
-        }
+        ITantraApp.instance.meshCoordinator.restartTransports()
+        startMeshService()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        walkieViewModel.attachContext(this)
         requestRequiredPermissions()
 
         setContent {
@@ -113,8 +112,14 @@ class MainActivity : ComponentActivity() {
         if (needed.isNotEmpty()) {
             permissionLauncher.launch(needed.toTypedArray())
         } else {
+            ITantraApp.instance.meshCoordinator.restartTransports()
             startMeshService()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        walkieViewModel.attachContext(this)
     }
 
     private fun startMeshService() {

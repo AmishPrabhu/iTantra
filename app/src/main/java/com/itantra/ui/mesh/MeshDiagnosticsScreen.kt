@@ -51,16 +51,11 @@ fun MeshDiagnosticsScreen(
     val onlineNodes = uiState?.discoveredPeers?.map { peer ->
         MeshNodeItem(
             nodeName = peer.name,
-            transport = if (peer.transport == TransportMode.WIFI_DIRECT) "Wi-Fi Direct P2P" else "Bluetooth SPP Mesh",
+            transport = if (peer.transport == TransportMode.WIFI_DIRECT) "Wi-Fi Hotspot / Direct" else "Bluetooth SPP Mesh",
             language = "${peer.language.nativeName} Mode",
             signalDbm = peer.signalDbm
         )
-    } ?: listOf(
-        MeshNodeItem("Rescue Base 01", "Wi-Fi Direct P2P", "Hindi Mode", "-42 dBm"),
-        MeshNodeItem("Rescue Boat Alpha", "Bluetooth SPP Mesh", "Marathi Mode", "-58 dBm"),
-        MeshNodeItem("Medical Unit Delta", "Bluetooth SPP Mesh", "Tamil Mode", "-74 dBm"),
-        MeshNodeItem("Helicopter Recon", "Wi-Fi Direct P2P", "English Mode", "-66 dBm")
-    )
+    } ?: emptyList()
 
     Column(
         modifier = Modifier

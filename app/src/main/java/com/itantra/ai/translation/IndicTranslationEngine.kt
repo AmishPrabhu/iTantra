@@ -48,6 +48,105 @@ class IndicTranslationEngine(private val context: Context) {
         // Built-in offline dictionary mapping & neural bridge
         val lower = inputText.lowercase().trim()
 
+        // 0. Primary Life-Threat SOS (बचाओ / Save Me / Bachao / Help Me / காப்பாற்றுங்கள் / రక్షించండి)
+        if (lower.contains("बचाओ") || lower.contains("bachao") || lower.contains("save me") ||
+            lower.contains("save us") || lower.contains("please save") || lower.contains("help me") ||
+            lower.contains("help us") || lower.contains("वाचवा") || lower.contains("বাঁচান") ||
+            lower.contains("காப்பாற்று") || lower.contains("రక్షించ") || lower.contains("ಉಳಿಸಿ") ||
+            lower.contains("രക്ഷിക്കൂ") || lower.contains("rescue me")
+        ) {
+            return when (tgt) {
+                Language.HINDI -> "मुझे बचाओ! मुझे बचाओ! तत्काल बचाव दल और सहायता भेजें!"
+                Language.ENGLISH -> "Emergency! Save me! Save me! Please send immediate rescue team!"
+                Language.TAMIL -> "எங்களை காப்பாற்றுங்கள்! அவசர உதவி தேவை! தயவுசெய்து உடனடியாக மீட்புக் குழுவை அனுப்பவும்!"
+                Language.TELUGU -> "నన్ను రక్షించండి! నన్ను రక్షించండి! దయచేసి వెంటనే రెస్క్యూ బృందాన్ని పంపండి!"
+                Language.MARATHI -> "मला वाचवा! मला वाचवा! कृपया तात्काळ बचाव पथक पाठवा!"
+                Language.BENGALI -> "আমাকে বাঁচান! আমাকে বাঁচান! অনুগ্রহ করে অবিলম্বে উদ্ধারকারী দল পাঠান!"
+                Language.KANNADA -> "ನನ್ನನ್ನು ಉಳಿಸಿ! ನನ್ನನ್ನು ಉಳಿಸಿ! ದಯವಿಟ್ಟು ತಕ್ಷಣ ರಕ್ಷಣಾ ತಂಡವನ್ನು ಕಳುಹಿಸಿ!"
+                Language.MALAYALAM -> "എന്നെ രക്ഷിക്കൂ! എന്നെ രക്ഷിക്കൂ! ദയവായി ഉടൻ രക്ഷാപ്രവർത്തകരെ അയക്കൂ!"
+                Language.GUJARATI -> "મને બचાવો! મને બચાવો! કૃપા કરીને તાત્કાલિક બચાવ ટીમ મોકલો!"
+                Language.PUNJABI -> "ਮੈਨੂੰ ਬਚਾਓ! ਮੈਨੂੰ ਬਚਾਓ! ਕਿਰਪਾ ਕਰਕੇ ਤੁਰੰਤ ਬਚਾਅ ਟੀਮ ਭੇਜੋ!"
+                Language.ODIA -> "ମୋତେ ବଞ୍ଚାନ୍ତୁ! ମୋତେ ବଞ୍ଚାନ୍ତୁ! ଦୟାକରି ତୁରନ୍ତ ଉଦ୍ଧାର ଦଳ ପଠାନ୍ତୁ!"
+            }
+        }
+
+        // 0B. Trapped Survivors / Under Debris (फंसे / Trapped / मलबा / Debris)
+        if (lower.contains("फंसे") || lower.contains("फंसा") || lower.contains("अटका") ||
+            lower.contains("trapped") || lower.contains("stuck") || lower.contains("debris") ||
+            lower.contains("मलबा") || lower.contains("ढिगारा") || lower.contains("சிக்கி")
+        ) {
+            return when (tgt) {
+                Language.HINDI -> "लोग मलबे में फंसे हुए हैं, कटर और बचाव उपकरण लेकर आएं!"
+                Language.ENGLISH -> "Survivors trapped under debris! Bring cutting tools and rescue gear!"
+                Language.TAMIL -> "மக்கள் இடிபாடுகளில் சிக்கியுள்ளனர், மீட்புக் கருவிகளுடன் உடனடியாக வரவும்!"
+                Language.TELUGU -> "శిథిలాలలో వ్యక్తులు చిక్కుకున్నారు, రెస్క్యూ పరికరాలతో రండి!"
+                Language.MARATHI -> "नागरिक ढिगाऱ्याखाली अडकले आहेत, कटर आणि बचाव साहित्य घेऊन या!"
+                Language.BENGALI -> "মানুষ ধ্বংসস্তূপের নিচে আটকে আছে, উদ্ধার সরঞ্জাম নিয়ে আসুন!"
+                Language.KANNADA -> "ಜನರು ಅವಶೇಷಗಳಡಿಯಲ್ಲಿ ಸಿಲುಕಿಕೊಂಡಿದ್ದಾರೆ, ರಕ್ಷಣಾ ಸಾಧನಗಳೊಂದಿಗೆ ಬನ್ನಿ!"
+                Language.MALAYALAM -> "ആളുകൾ അവശിഷ്ടങ്ങൾക്കിടയിൽ കുടുങ്ങിയിരിക്കുകയാണ്, ഉപകരണങ്ങളുമായി വരൂ!"
+                Language.GUJARATI -> "લોકો કાટમાળમાં ફસાયેલા છે, બચાવ સાધનો સાથે આવો!"
+                Language.PUNJABI -> "ਲੋਕ ਮਲਬੇ ਹੇਠ ਫਸੇ ਹੋਏ ਹਨ, ਬਚਾਅ ਉਪਕਰਨ ਲੈ ਕੇ ਆਓ!"
+                Language.ODIA -> "ଲୋକମାନେ ଭଗ୍ନାବଶେଷ ତଳେ ଫସି ରହିଛନ୍ତି, ଉଦ୍ଧାର ଉପକରଣ ଆଣନ୍ତୁ!"
+            }
+        }
+
+        // 0C. Injured / Medical Trauma (चोट / घायल / Bleeding / Injured)
+        if (lower.contains("चोट") || lower.contains("घायल") || lower.contains("खून") ||
+            lower.contains("injured") || lower.contains("bleeding") || lower.contains("wound") ||
+            lower.contains("जखमी") || lower.contains("காயம்") || lower.contains("గాయం")
+        ) {
+            return when (tgt) {
+                Language.HINDI -> "गंभीर चोट लगी है, तत्काल प्राथमिक उपचार और स्ट्रेचर की आवश्यकता है!"
+                Language.ENGLISH -> "Severe injuries reported, urgent first aid and stretcher needed!"
+                Language.TAMIL -> "கடுமையான காயம் ஏற்பட்டுள்ளது, அவசர முதலுதவி மற்றும் ஸ்ட்ரெச்சர் தேவை!"
+                Language.TELUGU -> "తీవ్ర గాయాలయ్యాయి, అత్యవసర ప్రథమ చికిత్స మరియు స్ట్రెచర్ కావాలి!"
+                Language.MARATHI -> "गंभीर दुखापत झाली आहे, तातडीने प्रथमोपचार आणि स्ट्रेचर पाठवा!"
+                Language.BENGALI -> "গুরুতর আহত ব্যক্তি আছেন, অবিলম্বে প্রাথমিক চিকিৎসা এবং স্ট্রেচার প্রয়োজন!"
+                Language.KANNADA -> "ತೀವ್ರ ಗಾಯಗಳಾಗಿವೆ, ತುರ್ತು ಪ್ರಥಮ ಚಿಕಿತ್ಸೆ ಮತ್ತು ಸ್ಟ್ರೆಚರ್ ಅಗತ್ಯವಿದೆ!"
+                Language.MALAYALAM -> "ഗുരുതരമായി പരിക്കേറ്റു, പ്രഥമശുശ്രൂഷയും സ്ട്രെച്ചറും വേണം!"
+                Language.GUJARATI -> "ગંભીર ઈજા થઈ છે, તાત્કાલિક પ્રાથમિક સારવાર અને સ્ટ્રેચર મોકલો!"
+                Language.PUNJABI -> "ਗੰਭੀਰ ਸੱਟ ਲੱਗੀ ਹੈ, ਤੁਰੰਤ ਮੁੱਢਲੀ ਸਹਾਇਤਾ ਅਤੇ ਸਟ੍ਰੈਚਰ ਦੀ ਲੋੜ ਹੈ!"
+                Language.ODIA -> "ଗୁରୁତର ଆଘାତ ଲାଗିଛି, ତୁରନ୍ତ ପ୍ରାଥମିକ ଚିକିତ୍ସା ଏବଂ ଷ୍ଟ୍ରେଚର୍ ଆବଶ୍ୟକ!"
+            }
+        }
+
+        // 0D. Drinking Water and Rations SOS (पानी / खाना / Food / Water)
+        if (lower.contains("पानी चाहिए") || lower.contains("खाना") || lower.contains("भूख") ||
+            lower.contains("प्यासा") || lower.contains("food") || lower.contains("water") ||
+            lower.contains("drinking water") || lower.contains("ration") || lower.contains("உணவு") || lower.contains("தண்ணீர்")
+        ) {
+            return when (tgt) {
+                Language.HINDI -> "यहाँ पीने के पानी और भोजन की सख्त जरूरत है, राहत सामग्री भेजें!"
+                Language.ENGLISH -> "Urgent need for drinking water and rations at this location!"
+                Language.TAMIL -> "இங்கு குடிநீர் மற்றும் உணவு அவசரமாக தேவைப்படுகிறது, நிவாரணப் பொருட்கள் அனுப்பவும்!"
+                Language.TELUGU -> "ఇక్కడ త్రాగునీరు మరియు ఆహారం అత్యవసరంగా అవసరం, సహాయ సామగ్రిని పంపండి!"
+                Language.MARATHI -> "येथे पिण्याचे पाणी आणि अन्नाची नितांत गरज आहे, मदत सामग्री पाठवा!"
+                Language.BENGALI -> "এখানে পানীয় জল এবং খাবারের জরুরি প্রয়োজন, ত্রাণ সামগ্রী পাঠান!"
+                Language.KANNADA -> "ಇಲ್ಲಿ ಕುಡಿಯುವ ನೀರು ಮತ್ತು ಆಹಾರದ ತುರ್ತು ಅಗತ್ಯವಿದೆ, ಪರಿಹಾರ ಸಾಮಗ್ರಿ ಕಳುಹಿಸಿ!"
+                Language.MALAYALAM -> "ഇവിടെ കുടിവെള്ളവും ഭക്ഷണവും അടിയന്തരമായി ആവശ്യമുണ്ട്!"
+                Language.GUJARATI -> "અહીં પીવાના પાણી અને ભોજનની તાતી જરૂર છે, રાહત સામગ્રી મોકલો!"
+                Language.PUNJABI -> "ਇੱਥੇ ਪੀਣ ਵਾਲੇ ਪਾਣੀ ਅਤੇ ਭੋਜਨ ਦੀ ਬਹੁਤ ਲੋੜ ਹੈ, ਰਾਹਤ ਸਮੱਗਰੀ ਭੇਜੋ!"
+                Language.ODIA -> "ଏଠାରେ ପିଇବା ପାଣି ଏବଂ ଖାଦ୍ୟର ଜରୁରୀ ଆବଶ୍ୟକତା ଅଛି!"
+            }
+        }
+
+        // 0E. Hello Brother / Responder Contact Check (हैलो भाई / Hello brother / नमस्ते)
+        if ((lower.contains("भाई") || lower.contains("brother")) && (lower.contains("हैलो") || lower.contains("hello") || lower.contains("नमस्ते") || lower.contains("सुनो"))) {
+            return when (tgt) {
+                Language.HINDI -> "नमस्ते भाई! क्या आप मुझे सुन सकते हैं? मैं आपकी सहायता के लिए यहाँ हूँ।"
+                Language.ENGLISH -> "Hello brother! Can you hear me? I am here to help you."
+                Language.TAMIL -> "வணக்கம் சகோதரா! என் குரல் கேட்கிறதா? நான் உங்களுக்கு உதவ இங்கே இருக்கிறேன்."
+                Language.TELUGU -> "నమస్కారం సోదరా! నా మాట వినబడుతోందా? నేను మీకు సహాయం చేయడానికి ఇక్కడ ఉన్నాను."
+                Language.MARATHI -> "नमस्कार भावा! माझा आवाज येतोय का? मी तुमच्या मदतीसाठी येथे आहे."
+                Language.BENGALI -> "নমস্কার ভাই! আমার কথা শুনতে পাচ্ছেন? আমি সাহায্য করতে এসেছি।"
+                Language.KANNADA -> "ನಮಸ್ಕಾರ ಸಹೋದರ! ನನ್ನ ಧ್ವನಿ ಕೇಳಿಸುತ್ತಿದೆಯೇ? ನಾನು ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಇಲ್ಲಿದ್ದೇನೆ."
+                Language.MALAYALAM -> "നമസ്കാരം സഹോദരാ! എന്നെ കേൾക്കാമോ? ഞാൻ സഹായിക്കാൻ ഇവിടെയുണ്ട്."
+                Language.GUJARATI -> "નમસ્તે ભાઈ! મારો અવાજ આવે છે? હું મદદ માટે અહીં છું."
+                Language.PUNJABI -> "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਵੀਰ ਜੀ! ਮੇਰੀ ਆਵਾਜ਼ ਆ ਰਹੀ ਹੈ? ਮੈਂ ਮਦਦ ਲਈ ਇੱਥੇ ਹਾਂ।"
+                Language.ODIA -> "ନମସ୍କାର ଭାଇ! ମୋ କଥା ଶୁଭୁଛି କି? ମୁଁ ସାହାଯ୍ୟ କରିବାକୁ ଏଠାରେ ଅଛି।"
+            }
+        }
+
         // 1. Flood Alert (बाढ़ / पूर / வெள்ளம் / Flood)
         if (lower.contains("baadh") || lower.contains("बाढ़") || lower.contains("पाणी") || lower.contains("पूर") || lower.contains("வெள்ள") || lower.contains("flood")) {
             return when (tgt) {

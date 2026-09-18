@@ -7,6 +7,7 @@ import com.itantra.ai.model.Language
 import com.itantra.audio.NativeAudioBridge
 import com.itantra.transport.TransportMode
 import com.itantra.transport.dtn.DtnMessageEntity
+import com.itantra.transport.protocol.PacketProtocol
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -92,50 +93,77 @@ class WalkieTalkieViewModel : ViewModel() {
                     .filter { it.senderNodeId != "Self" && it.senderNodeId != "Self_Emergency" }
                     .maxByOrNull { it.timestamp }
                 if (latestIncoming != null && !_uiState.value.isTransmitting) {
+                    val prefix = if (latestIncoming.packetType == PacketProtocol.TYPE_EMERGENCY_ALERT) "🚨 SOS from ${latestIncoming.senderNodeId}: " else "📥 Incoming from ${latestIncoming.senderNodeId}: "
                     _uiState.value = _uiState.value.copy(
-                        lastSentText = "📥 Incoming: ${latestIncoming.originalText}",
+                        lastSentText = "$prefix${latestIncoming.originalText}",
                         lastTranslatedText = "➔ Translated: ${latestIncoming.translatedText}"
                     )
                 }
             }
         }
 
-        // Live Dynamic Peer Discovery across Wi-Fi Direct & Bluetooth
         viewModelScope.launch {
-            coordinator.discoveredWifiDirectDevices.collect { p2pDevices ->
+            coordinator.connectedPeersCount.collect { count ->
+                _uiState.value = _uiState.value.copy(connectedNodesCount = count)
+            }
+        }
+
+        // Live Dynamic Peer Discovery across Wi-Fi Mesh, Wi-Fi Direct, and Bluetooth
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(
+                coordinator.liveMeshNodes,
+                coordinator.discoveredWifiDirectDevices
+            ) { liveNodes, p2pDevices ->
                 val btDevices = coordinator.getDiscoveredBluetoothDevices()
                 val peersList = mutableListOf<DiscoveredPeer>()
 
-                // 1. Real Wi-Fi Direct devices discovered in physical range
-                p2pDevices.forEach { dev ->
-                    val rawName = dev.deviceName.trim()
-                    val displayName = if (rawName.isNotBlank() && rawName != "[Unknown]") rawName else "Wi-Fi Direct (${dev.deviceAddress.takeLast(5)})"
+                // 1. Discovered verified active mesh nodes (via BLE GATT / Insecure RFCOMM / UDP)
+                liveNodes.forEach { node ->
                     peersList.add(
                         DiscoveredPeer(
-                            id = "wfd_${dev.deviceAddress}",
-                            name = displayName,
-                            role = "Wi-Fi Direct (~150m)",
-                            language = _uiState.value.receiverLanguage,
-                            transport = TransportMode.WIFI_DIRECT,
-                            signalDbm = "Direct Link",
+                            id = "node_${node.nodeId}",
+                            name = node.deviceName,
+                            role = if (node.transport == TransportMode.WIFI_DIRECT) "Hotspot / Wi-Fi Mesh" else "In-App BLE Mesh",
+                            language = node.preferredLanguage,
+                            transport = node.transport,
+                            signalDbm = "Mesh Active",
                             isOnline = true
                         )
                     )
                 }
 
-                // 2. Real Bluetooth devices in range
+                // 2. Wi-Fi Direct devices in range (if not already verified active)
+                p2pDevices.forEach { dev ->
+                    val rawName = dev.deviceName.trim()
+                    val displayName = if (rawName.isNotBlank() && rawName != "[Unknown]") rawName else "Wi-Fi Direct (${dev.deviceAddress.takeLast(5)})"
+                    if (peersList.none { it.id.contains(dev.deviceAddress) || it.name == displayName }) {
+                        peersList.add(
+                            DiscoveredPeer(
+                                id = "wfd_${dev.deviceAddress}",
+                                name = displayName,
+                                role = "Wi-Fi Direct (~150m)",
+                                language = _uiState.value.receiverLanguage,
+                                transport = TransportMode.WIFI_DIRECT,
+                                signalDbm = "Auto-Linking",
+                                isOnline = false
+                            )
+                        )
+                    }
+                }
+
+                // 3. Nearby Bluetooth devices discovered in-app
                 btDevices.forEach { btDev ->
                     val name = try { btDev.name } catch (e: SecurityException) { null } ?: "Bluetooth Device"
-                    if (peersList.none { it.id.contains(btDev.address) }) {
+                    if (peersList.none { it.id.contains(btDev.address) || it.name.equals(name, ignoreCase = true) }) {
                         peersList.add(
                             DiscoveredPeer(
                                 id = "bt_${btDev.address}",
                                 name = name,
-                                role = "Bluetooth SPP Mesh",
+                                role = "In-App Bluetooth",
                                 language = _uiState.value.receiverLanguage,
                                 transport = TransportMode.BLUETOOTH_SPP,
-                                signalDbm = "SPP Paired",
-                                isOnline = true
+                                signalDbm = "Auto-Linking",
+                                isOnline = false
                             )
                         )
                     }
@@ -143,9 +171,9 @@ class WalkieTalkieViewModel : ViewModel() {
 
                 _uiState.value = _uiState.value.copy(
                     discoveredPeers = peersList,
-                    connectedNodesCount = if (peersList.isNotEmpty()) peersList.size + 1 else 1
+                    connectedNodesCount = liveNodes.size + 1
                 )
-            }
+            }.collect {}
         }
     }
 
@@ -236,15 +264,13 @@ class WalkieTalkieViewModel : ViewModel() {
                     isLatin && detectedLang != Language.ENGLISH -> Language.ENGLISH
                     else -> detectedLang
                 }
-
-                _uiState.value = _uiState.value.copy(spokenLanguage = detectedLang)
                 val targetPeer = _uiState.value.selectedPeer
-                coordinator.transmitVoiceText(spokenText, detectedLang)
+                coordinator.transmitVoiceText(spokenText, detectedLang, "ALL")
                 
                 val statusText = if (targetPeer != null) {
-                    "➔ 1-to-1 to ${targetPeer.name} in ${targetPeer.language.nativeName} (Auto-Translated)"
+                    "➔ Directed to ${targetPeer.name} in ${targetPeer.language.nativeName} (Broadcast to Mesh)"
                 } else {
-                    "➔ Broadcasted to ${_uiState.value.connectedNodesCount} Nodes (Auto-Translated)"
+                    "➔ Broadcasted to All Nearby Nodes (Auto-Translated)"
                 }
 
                 _uiState.value = _uiState.value.copy(
@@ -263,12 +289,12 @@ class WalkieTalkieViewModel : ViewModel() {
     fun transmitQuickPhrase(phrase: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val detectedLang = _uiState.value.spokenLanguage
-            coordinator.transmitVoiceText(phrase, detectedLang)
             val targetPeer = _uiState.value.selectedPeer
+            coordinator.transmitVoiceText(phrase, detectedLang, "ALL")
             val statusText = if (targetPeer != null) {
-                "➔ 1-to-1 to ${targetPeer.name} in ${targetPeer.language.nativeName} (Auto-Translated)"
+                "➔ Directed to ${targetPeer.name} in ${targetPeer.language.nativeName} (Broadcast to Mesh)"
             } else {
-                "➔ Broadcasted to ${_uiState.value.connectedNodesCount} Nodes (Auto-Translated)"
+                "➔ Broadcasted to All Nearby Nodes (Auto-Translated)"
             }
             _uiState.value = _uiState.value.copy(
                 lastSentText = phrase,
@@ -281,8 +307,8 @@ class WalkieTalkieViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             coordinator.transmitEmergencyAlert(alertTitle, _uiState.value.spokenLanguage)
             _uiState.value = _uiState.value.copy(
-                lastSentText = alertTitle,
-                lastTranslatedText = "🚨 Emergency Fast-Path (0ms .wav Dispatched)"
+                lastSentText = "🚨 Dispatched SOS: $alertTitle",
+                lastTranslatedText = "🚨 Connectionless BLE Burst & Multi-Radio Mesh Dispatched"
             )
         }
     }

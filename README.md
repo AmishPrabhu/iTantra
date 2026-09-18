@@ -51,7 +51,8 @@ The first sync will download:
 - **Google Oboe** (`com.google.oboe:oboe:1.8.0`) — the high‑performance native audio library.
 - The bundled **sherpa‑onnx** AAR at `app/libs/sherpa-onnx-1.13.8.aar` (already included in the repo, not fetched from a remote repo).
 
-> No API keys, backend servers, or `local.properties` secrets are required — everything the app needs at runtime ships inside the APK (`app/src/main/assets/sherpa/*.onnx` + `tokens.txt`, ~35 MB of speech‑recognition model weights).
+> [!NOTE]
+> No API keys, backend servers, or `local.properties` secrets are required. Token vocabulary files (`indic-tokens.txt`, `en-tokens.txt`) are tracked in git. Full neural STT models (`indic-model.int8.onnx`, `en-model.int8.onnx`, ~170–190 MB each) exceed GitHub's 100 MB file limit and are ignored in git; place them into `app/src/main/assets/sherpa/` to enable full neural inference (the engine will safely fall back if omitted).
 
 ### 2.3 Running it
 
@@ -189,7 +190,7 @@ iTantra-main/
 │   └── src/
 │       ├── main/
 │       │   ├── cpp/                # Oboe audio engine, RMS gate, mmap loader, JNI bridge
-│       │   ├── assets/sherpa/      # ONNX STT model weights + tokens.txt
+│       │   ├── assets/sherpa/      # STT token files (+ local ONNX model weights)
 │       │   ├── java/com/itantra/
 │       │   │   ├── ITantraApp.kt               # Application: wires up all engines
 │       │   │   ├── ai/{vad,lid,stt,translation,tts,model}/

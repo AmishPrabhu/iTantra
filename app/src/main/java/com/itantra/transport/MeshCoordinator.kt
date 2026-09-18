@@ -35,7 +35,33 @@ class MeshCoordinator(
     private val TAG = "MeshCoordinator"
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val _connectedPeersCount = MutableStateFlow(4) // Default active nodes
+    val localNodeId: String = try {
+        android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID)?.take(6) ?: "node_${(1000..9999).random()}"
+    } catch (e: Exception) {
+        "node_${(1000..9999).random()}"
+    }
+
+    val localDeviceName: String = try {
+        val model = android.os.Build.MODEL ?: "Responder"
+        if (model.isNotBlank()) model else "Responder $localNodeId"
+    } catch (e: Exception) {
+        "Responder $localNodeId"
+    }
+
+    data class MeshNodeInfo(
+        val nodeId: String,
+        val deviceName: String,
+        val preferredLanguage: Language,
+        val transport: TransportMode,
+        val ipAddress: String?,
+        val lastSeenMs: Long
+    )
+
+    private val activeMeshNodes = java.util.concurrent.ConcurrentHashMap<String, MeshNodeInfo>()
+    private val _liveMeshNodes = MutableStateFlow<List<MeshNodeInfo>>(emptyList())
+    val liveMeshNodes: StateFlow<List<MeshNodeInfo>> = _liveMeshNodes.asStateFlow()
+
+    private val _connectedPeersCount = MutableStateFlow(1)
     val connectedPeersCount: StateFlow<Int> = _connectedPeersCount.asStateFlow()
 
     private val _preferredLanguage = MutableStateFlow(Language.HINDI)
@@ -47,6 +73,8 @@ class MeshCoordinator(
     private var bluetoothManager: BluetoothMeshManager? = null
     private var wifiDirectManager: WifiDirectMeshManager? = null
     private var heartbeatJob: Job? = null
+
+    var emergencyAlertListener: ((alertText: String, sourceLang: Language, senderName: String) -> Unit)? = null
 
     val discoveredWifiDirectDevices: StateFlow<List<android.net.wifi.p2p.WifiP2pDevice>>
         get() = wifiDirectManager?.discoveredDevices ?: MutableStateFlow(emptyList())
@@ -61,30 +89,57 @@ class MeshCoordinator(
     }
 
     private fun initTransportManagers() {
-        bluetoothManager = BluetoothMeshManager(context) { rawPacket ->
+        bluetoothManager = BluetoothMeshManager(context, localNodeId) { rawPacket ->
             handleIncomingPacket(rawPacket, "Bluetooth_Peer")
         }
 
-        wifiDirectManager = WifiDirectMeshManager(context) { rawPacket ->
-            handleIncomingPacket(rawPacket, "WifiDirect_Peer")
+        wifiDirectManager = WifiDirectMeshManager(context) { rawPacket, senderIp ->
+            handleIncomingPacket(rawPacket, senderIp)
         }
 
-        bluetoothManager?.startServer()
+        bluetoothManager?.startMesh()
         wifiDirectManager?.startDiscovery()
+    }
+
+    fun restartTransports() {
+        Log.i(TAG, "Restarting mesh radio transports after permission approval/resume...")
+        bluetoothManager?.stop()
+        initTransportManagers()
     }
 
     private fun startHeartbeatWatchdog() {
         heartbeatJob = scope.launch {
             while (isActive) {
-                delay(2000) // 2.0s Heartbeat interval per SIH specification
+                delay(1500) // 1.5s Heartbeat interval for dynamic discovery
                 try {
+                    val pingPayload = PacketProtocol.encodeHeartbeatPayload(
+                        nodeId = localNodeId,
+                        deviceName = localDeviceName,
+                        lang = _preferredLanguage.value
+                    )
                     val heartbeatPacket = PacketProtocol.encodePacket(
                         type = PacketProtocol.TYPE_HEARTBEAT_PING,
                         sourceLang = _preferredLanguage.value,
                         sequenceId = 0,
-                        textPayload = "PING"
+                        textPayload = pingPayload
                     )
                     broadcastToMesh(heartbeatPacket)
+
+                    // Prune inactive nodes (silent for > 6 seconds)
+                    val now = System.currentTimeMillis()
+                    var pruned = false
+                    val iterator = activeMeshNodes.entries.iterator()
+                    while (iterator.hasNext()) {
+                        val entry = iterator.next()
+                        if (now - entry.value.lastSeenMs > 6000) {
+                            iterator.remove()
+                            pruned = true
+                        }
+                    }
+                    if (pruned || _liveMeshNodes.value.size != activeMeshNodes.size) {
+                        _liveMeshNodes.value = activeMeshNodes.values.toList()
+                        _connectedPeersCount.value = activeMeshNodes.size + 1
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "Heartbeat ping failed: ${e.message}")
                 }
@@ -110,7 +165,8 @@ class MeshCoordinator(
      */
     suspend fun transmitVoiceText(
         spokenText: String,
-        spokenLang: Language
+        spokenLang: Language,
+        targetPeerId: String = "ALL"
     ) = withContext(Dispatchers.IO) {
         if (spokenText.isBlank()) return@withContext
 
@@ -124,12 +180,18 @@ class MeshCoordinator(
         )
         sentSequenceIds.add(dtnMsg.sequenceId)
 
-        // 2. Encode into binary packet
+        // 2. Encode into binary packet with structured envelope
+        val voicePayload = PacketProtocol.encodeVoicePayload(
+            senderNodeId = localNodeId,
+            senderDeviceName = localDeviceName,
+            targetNodeId = targetPeerId,
+            text = spokenText
+        )
         val packet = PacketProtocol.encodePacket(
             type = PacketProtocol.TYPE_VOICE_TEXT,
             sourceLang = spokenLang,
             sequenceId = dtnMsg.sequenceId,
-            textPayload = spokenText
+            textPayload = voicePayload
         )
 
         // 3. Dispatch over active transport
@@ -152,14 +214,24 @@ class MeshCoordinator(
         )
         sentSequenceIds.add(dtnMsg.sequenceId)
 
+        val alertPayload = PacketProtocol.encodeVoicePayload(
+            senderNodeId = localNodeId,
+            senderDeviceName = localDeviceName,
+            targetNodeId = "ALL",
+            text = alertText
+        )
         val packet = PacketProtocol.encodePacket(
             type = PacketProtocol.TYPE_EMERGENCY_ALERT,
             sourceLang = sourceLang,
             sequenceId = dtnMsg.sequenceId,
-            textPayload = alertText
+            textPayload = alertPayload
         )
 
+        // 1. Dual-radio broadcast (Wi-Fi UDP + BLE GATT + Insecure RFCOMM)
         broadcastToMesh(packet)
+
+        // 2. Instantaneous connectionless BLE burst for unlinked devices
+        bluetoothManager?.broadcastEmergencyBleBurst(packet)
     }
 
     fun connectToPeer(peerId: String) {
@@ -173,16 +245,18 @@ class MeshCoordinator(
             } else if (peerId.startsWith("wfd_")) {
                 val address = peerId.removePrefix("wfd_")
                 wifiDirectManager?.connectToP2pDevice(address)
+            } else if (peerId.startsWith("node_")) {
+                val node = activeMeshNodes[peerId]
+                if (node?.ipAddress != null) {
+                    wifiDirectManager?.connectToPeer(node.ipAddress)
+                }
             }
         }
     }
 
-    private val sentPacketHashes = java.util.Collections.synchronizedSet(mutableSetOf<Int>())
     private val receivedPacketKeys = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
     private fun broadcastToMesh(packetBytes: ByteArray) {
-        // Record exact raw packet hash to filter true UDP loopbacks
-        sentPacketHashes.add(java.util.Arrays.hashCode(packetBytes))
         // Dual-radio redundant transmission: always dispatch via both Wi-Fi UDP and Bluetooth SPP
         wifiDirectManager?.broadcastPacket(packetBytes)
         bluetoothManager?.broadcastPacket(packetBytes)
@@ -190,13 +264,6 @@ class MeshCoordinator(
 
     private fun handleIncomingPacket(rawPacket: ByteArray, senderId: String) {
         scope.launch {
-            // 1. Ignore true self-sent loopback UDP broadcasts from this same device
-            val rawHash = java.util.Arrays.hashCode(rawPacket)
-            if (sentPacketHashes.contains(rawHash)) {
-                Log.d(TAG, "Ignoring self-sent loopback packet")
-                return@launch
-            }
-
             val decoded = PacketProtocol.decodePacket(rawPacket) ?: return@launch
 
             if (!decoded.isCrcValid) {
@@ -204,27 +271,50 @@ class MeshCoordinator(
                 return@launch
             }
 
-            // 2. Prevent duplicate multi-radio arrival (e.g. received via both Wi-Fi and Bluetooth)
-            val dedupeKey = "${decoded.type}_${decoded.sourceLanguage.id}_${decoded.sequenceId}_${decoded.payloadText.hashCode()}"
-            if (!receivedPacketKeys.add(dedupeKey)) {
-                Log.d(TAG, "Ignoring duplicate packet $dedupeKey")
-                return@launch
-            }
-
             when (decoded.type) {
+                PacketProtocol.TYPE_HEARTBEAT_PING -> {
+                    val pingInfo = PacketProtocol.parseHeartbeatPayload(decoded.payloadText)
+                    if (pingInfo != null) {
+                        // Loopback check: ignore our own heartbeat
+                        if (pingInfo.nodeId == localNodeId) {
+                            return@launch
+                        }
+                        val transport = if (senderId.contains("Bluetooth", ignoreCase = true)) TransportMode.BLUETOOTH_SPP else TransportMode.WIFI_DIRECT
+                        val node = MeshNodeInfo(
+                            nodeId = pingInfo.nodeId,
+                            deviceName = pingInfo.deviceName,
+                            preferredLanguage = pingInfo.language,
+                            transport = transport,
+                            ipAddress = if (senderId != "WifiDirect_Peer" && senderId != "Bluetooth_Peer") senderId else null,
+                            lastSeenMs = System.currentTimeMillis()
+                        )
+                        activeMeshNodes[pingInfo.nodeId] = node
+                        _liveMeshNodes.value = activeMeshNodes.values.toList()
+                        _connectedPeersCount.value = activeMeshNodes.size + 1
+                        Log.d(TAG, "Mesh peer online: ${node.deviceName} (${node.preferredLanguage.englishName}) on ${node.transport} from $senderId")
+                    }
+                }
                 PacketProtocol.TYPE_ACK -> {
                     dtnQueue.markAcknowledged(decoded.sequenceId)
                 }
                 PacketProtocol.TYPE_EMERGENCY_ALERT -> {
-                    Log.i(TAG, "🚨 CRITICAL EMERGENCY ALERT RECEIVED: ${decoded.payloadText}")
-                    try {
-                        val toneGen = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100)
-                        toneGen.startTone(android.media.ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 600)
-                    } catch (ignored: Exception) {}
+                    val alertPayload = PacketProtocol.parseVoicePayload(decoded.payloadText)
+                    if (alertPayload.senderNodeId == localNodeId) {
+                        return@launch
+                    }
 
-                    // Translate and play immediately
+                    // Multi-radio deduplication across BLE burst, GATT, RFCOMM, UDP
+                    val dedupeKey = "ALERT_${alertPayload.senderNodeId}_${decoded.sequenceId}"
+                    if (!receivedPacketKeys.add(dedupeKey)) {
+                        Log.d(TAG, "Ignoring duplicate emergency alert $dedupeKey")
+                        return@launch
+                    }
+
+                    Log.i(TAG, "🚨 CRITICAL EMERGENCY ALERT RECEIVED from ${alertPayload.senderDeviceName}: ${alertPayload.text}")
+
+                    // Translate into receiver's preferred language
                     val translated = translationEngine.translateText(
-                        decoded.payloadText,
+                        alertPayload.text,
                         decoded.sourceLanguage,
                         _preferredLanguage.value
                     )
@@ -232,41 +322,89 @@ class MeshCoordinator(
                         decoded.sequenceId,
                         decoded.type,
                         decoded.sourceLanguage.id,
-                        decoded.payloadText,
+                        alertPayload.text,
                         translated,
-                        senderId
+                        alertPayload.senderDeviceName
                     )
-                    ttsEngine.synthesizeAndPlay(translated, _preferredLanguage.value)
+
+                    // 1. Notify background service to show high-priority notification and wake device
+                    emergencyAlertListener?.invoke(alertPayload.text, decoded.sourceLanguage, alertPayload.senderDeviceName)
+
+                    // 2. Play 3x siren tone + 3x translated voice through speaker!
+                    scope.launch {
+                        for (iteration in 1..3) {
+                            try {
+                                val toneGen = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100)
+                                toneGen.startTone(android.media.ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 550)
+                                delay(600)
+                                toneGen.release()
+                            } catch (ignored: Exception) {}
+
+                            ttsEngine.synthesizeAndPlay(translated, _preferredLanguage.value)
+                            if (iteration < 3) {
+                                delay(800) // Pause between repeats
+                            }
+                        }
+                    }
                 }
                 PacketProtocol.TYPE_VOICE_TEXT -> {
-                    Log.i(TAG, "Received Voice Text: ${decoded.payloadText} (Source: ${decoded.sourceLanguage.englishName})")
+                    val voicePayload = PacketProtocol.parseVoicePayload(decoded.payloadText)
+                    // Loopback check: ignore our own transmissions
+                    if (voicePayload.senderNodeId == localNodeId) {
+                        return@launch
+                    }
 
-                    // 1. Translate locally on receiver's phone into preferred language
+                    // Accept all incoming disaster mesh packets (only drop self-loopback)
+                    Log.i(TAG, "Accepting incoming voice packet from ${voicePayload.senderDeviceName} (Target: ${voicePayload.targetNodeId})")
+
+                    // Multi-radio & retransmission deduplication
+                    val dedupeKey = "VOICE_${voicePayload.senderNodeId}_${decoded.sequenceId}"
+                    if (!receivedPacketKeys.add(dedupeKey)) {
+                        Log.d(TAG, "Ignoring duplicate packet $dedupeKey")
+                        return@launch
+                    }
+
+                    // Update sender node presence
+                    if (voicePayload.senderNodeId.isNotBlank() && voicePayload.senderNodeId != "Peer") {
+                        val transport = if (senderId.contains("Bluetooth", ignoreCase = true)) TransportMode.BLUETOOTH_SPP else TransportMode.WIFI_DIRECT
+                        val node = MeshNodeInfo(
+                            nodeId = voicePayload.senderNodeId,
+                            deviceName = voicePayload.senderDeviceName,
+                            preferredLanguage = decoded.sourceLanguage,
+                            transport = transport,
+                            ipAddress = if (senderId != "WifiDirect_Peer" && senderId != "Bluetooth_Peer") senderId else null,
+                            lastSeenMs = System.currentTimeMillis()
+                        )
+                        activeMeshNodes[voicePayload.senderNodeId] = node
+                        _liveMeshNodes.value = activeMeshNodes.values.toList()
+                        _connectedPeersCount.value = activeMeshNodes.size + 1
+                    }
+
+                    Log.i(TAG, "Received Voice Text: '${voicePayload.text}' from ${voicePayload.senderDeviceName} (${decoded.sourceLanguage.englishName})")
+
+                    // 1. Translate locally on receiver's phone into receiver's preferred language
                     val translated = translationEngine.translateText(
-                        decoded.payloadText,
+                        voicePayload.text,
                         decoded.sourceLanguage,
                         _preferredLanguage.value
                     )
 
-                    // 2. Persist in DTN history
+                    // 2. Persist in DTN history with real sender device name
                     dtnQueue.enqueueIncomingMessage(
                         decoded.sequenceId,
                         decoded.type,
                         decoded.sourceLanguage.id,
-                        decoded.payloadText,
+                        voicePayload.text,
                         translated,
-                        senderId
+                        voicePayload.senderDeviceName
                     )
 
                     // 3. Send ACK back to sender
                     val ackPacket = PacketProtocol.createAckPacket(decoded.sequenceId)
                     broadcastToMesh(ackPacket)
 
-                    // 4. Play audio through speaker via FastPitch TTS
+                    // 4. Play audio through speaker in receiver's preferred language
                     ttsEngine.synthesizeAndPlay(translated, _preferredLanguage.value)
-                }
-                PacketProtocol.TYPE_HEARTBEAT_PING -> {
-                    Log.d(TAG, "Heartbeat ping received from $senderId")
                 }
             }
         }

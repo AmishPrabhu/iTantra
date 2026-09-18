@@ -7,15 +7,18 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
 import com.itantra.ai.model.Language
-import com.k2fsa.sherpa.onnx.OnlineStream
 import kotlinx.coroutines.*
 import kotlin.math.sqrt
 
 /**
- * 100% On-Device Real-Time Speech Recognizer.
- * Captures raw 16kHz PCM audio directly from the device microphone via AudioRecord
- * and streams it into the embedded on-device ONNX neural engine (sherpa-onnx / IndicConformer).
- * Completely replaces Android's Google SpeechRecognizer — zero internet, zero cloud servers, zero external setup.
+ * 100% On-Device Neural Speech Recognizer for iTantra.
+ *
+ * Architecture:
+ * - Persistent Warm Audio Engine: Keeps AudioRecord open and warm across PTT presses,
+ *   preventing CoreAudio stream re-negotiation glitches and emulator 1kHz dummy tones.
+ * - 300ms Pre-Roll Circular Buffer: Captures speech uttered right as or slightly before the PTT button is pressed.
+ * - Automatic Gain Normalization (RMS): Normalizes faint microphone speech to conversational reference levels (0.15f RMS).
+ * - Dual-Pass Neural STT: AI4Bharat IndicConformer (INT8 CTC) + NeMo Fast-Conformer (INT8 CTC).
  */
 class RealtimeSpeechRecognizer(
     private val context: Context,
@@ -27,34 +30,41 @@ class RealtimeSpeechRecognizer(
     private val sttEngine: IndicConformerSttEngine by lazy { IndicConformerSttEngine(currentContext) }
 
     private var activeLanguage: Language = Language.HINDI
-    private var isRecording: Boolean = false
+    @Volatile private var isRecordingUtterance: Boolean = false
+    @Volatile private var isEngineRunning: Boolean = false
+
     private var audioRecord: AudioRecord? = null
-    private var currentStream: OnlineStream? = null
-    private var recordingJob: Job? = null
+    private var audioLoopJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    @Volatile
-    private var lastRecognizedText: String = ""
-    @Volatile
-    private var voiceAcousticHeard: Boolean = false
+    // 300ms Circular Pre-Roll Buffer @ 16kHz MONO (4,800 samples)
+    private val PRE_ROLL_CAPACITY = 4800
+    private val preRollBuffer = ShortArray(PRE_ROLL_CAPACITY)
+    private var preRollWriteHead = 0
+    private var preRollFilledCount = 0
+    private val preRollLock = Any()
+
+    // Utterance accumulator for active PTT press
+    private val audioChunks = mutableListOf<ShortArray>()
+    private var totalSamplesRecorded = 0
+    private val utteranceLock = Any()
 
     var onRmsUpdate: ((Float) -> Unit)? = null
+
+    init {
+        startPersistentAudioStream()
+    }
 
     fun updateContext(newContext: Context) {
         currentContext = newContext
     }
 
     @SuppressLint("MissingPermission")
-    fun startListening(language: Language) {
-        lastRecognizedText = ""
-        activeLanguage = language
-        voiceAcousticHeard = false
-        isRecording = true
+    private fun startPersistentAudioStream() {
+        if (isEngineRunning) return
+        isEngineRunning = true
 
-        onLiveSpeechUpdate("Listening (100% On-Device ONNX)...")
-
-        recordingJob?.cancel()
-        recordingJob = scope.launch {
+        audioLoopJob = scope.launch {
             val sampleRate = 16000
             val channelConfig = AudioFormat.CHANNEL_IN_MONO
             val audioFormat = AudioFormat.ENCODING_PCM_16BIT
@@ -64,150 +74,188 @@ class RealtimeSpeechRecognizer(
             var record: AudioRecord? = null
             val audioSources = intArrayOf(
                 MediaRecorder.AudioSource.MIC,
-                MediaRecorder.AudioSource.DEFAULT,
-                MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION
+                MediaRecorder.AudioSource.DEFAULT
             )
 
             for (source in audioSources) {
                 try {
-                    val candidate = AudioRecord(
-                        source,
-                        sampleRate,
-                        channelConfig,
-                        audioFormat,
-                        bufferSize
-                    )
+                    val candidate = AudioRecord(source, sampleRate, channelConfig, audioFormat, bufferSize)
                     if (candidate.state == AudioRecord.STATE_INITIALIZED) {
                         record = candidate
-                        Log.i(TAG, "AudioRecord initialized successfully with audio source: $source")
+                        Log.i(TAG, "⚡ AudioRecord hardware initialized using source: $source")
                         break
                     } else {
                         candidate.release()
                     }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Audio source $source failed: ${e.message}")
-                }
+                } catch (ignored: Exception) {}
             }
 
             if (record == null) {
-                Log.e(TAG, "All AudioRecord sources failed to initialize")
+                Log.e(TAG, "Failed to initialize AudioRecord hardware device.")
+                isEngineRunning = false
                 return@launch
             }
 
+            audioRecord = record
             try {
-                audioRecord = record
                 record.startRecording()
-                Log.i(TAG, "⚡ Direct AudioRecord stream started @ 16kHz PCM (On-Device STT)")
+                Log.i(TAG, "⚡ Persistent warm audio stream active @ 16kHz PCM with 300ms Pre-Roll")
 
-                currentStream = sttEngine.createStream()
-                val shortBuffer = ShortArray(1024) // 64ms chunk @ 16kHz
-                val floatBuffer = FloatArray(1024)
+                val readBuffer = ShortArray(1024)
 
-                while (isRecording) {
-                    val readCount = record.read(shortBuffer, 0, shortBuffer.size)
+                while (isEngineRunning) {
+                    val readCount = record.read(readBuffer, 0, readBuffer.size)
                     if (readCount > 0) {
                         // 1. Calculate Real-Time Acoustic Energy (RMS)
                         var sumSquares = 0.0
                         for (i in 0 until readCount) {
-                            val sample = shortBuffer[i]
-                            sumSquares += sample * sample
-                            floatBuffer[i] = sample / 32768.0f
+                            val s = readBuffer[i]
+                            sumSquares += s * s
                         }
                         val rms = sqrt(sumSquares / readCount).toFloat()
-                        if (rms > 80f) {
-                            voiceAcousticHeard = true
+                        if (isRecordingUtterance) {
+                            onRmsUpdate?.invoke(rms)
                         }
-                        onRmsUpdate?.invoke(rms)
 
-                        // 2. Feed raw samples directly into the On-Device neural stream
-                        val stream = currentStream
-                        if (stream != null) {
-                            val slice = if (readCount == shortBuffer.size) floatBuffer else floatBuffer.copyOf(readCount)
-                            sttEngine.acceptWaveform(stream, slice, sampleRate)
+                        // 2. Write to Pre-Roll Circular Buffer
+                        synchronized(preRollLock) {
+                            for (i in 0 until readCount) {
+                                preRollBuffer[preRollWriteHead] = readBuffer[i]
+                                preRollWriteHead = (preRollWriteHead + 1) % PRE_ROLL_CAPACITY
+                                if (preRollFilledCount < PRE_ROLL_CAPACITY) preRollFilledCount++
+                            }
+                        }
 
-                            val partial = sttEngine.getResult(stream)
-                            if (partial.isNotBlank() && partial != lastRecognizedText) {
-                                lastRecognizedText = partial
-                                withContext(Dispatchers.Main) {
-                                    onLiveSpeechUpdate(partial)
-                                }
+                        // 3. Accumulate into active utterance if PTT is currently pressed
+                        if (isRecordingUtterance) {
+                            val chunkCopy = readBuffer.copyOf(readCount)
+                            synchronized(utteranceLock) {
+                                audioChunks.add(chunkCopy)
+                                totalSamplesRecorded += readCount
                             }
                         }
                     } else if (readCount < 0) {
-                        break
+                        Log.w(TAG, "AudioRecord read error: $readCount")
+                        delay(20)
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error in on-device audio recording loop: ${e.message}", e)
+                Log.e(TAG, "Error in persistent audio stream: ${e.message}", e)
             } finally {
                 try {
                     record.stop()
                     record.release()
                 } catch (ignored: Exception) {}
                 audioRecord = null
+                isEngineRunning = false
             }
         }
+    }
+
+    fun startListening(language: Language) {
+        if (!isEngineRunning || audioRecord == null) {
+            startPersistentAudioStream()
+        }
+        activeLanguage = language
+        onLiveSpeechUpdate("Listening (100% Offline AI4Bharat STT)...")
+
+        synchronized(utteranceLock) {
+            audioChunks.clear()
+            totalSamplesRecorded = 0
+
+            // Prepend 300ms pre-roll buffer so words uttered as the button was pressed are preserved
+            synchronized(preRollLock) {
+                if (preRollFilledCount > 0) {
+                    val preRollData = ShortArray(preRollFilledCount)
+                    val startPos = (preRollWriteHead - preRollFilledCount + PRE_ROLL_CAPACITY) % PRE_ROLL_CAPACITY
+                    for (i in 0 until preRollFilledCount) {
+                        preRollData[i] = preRollBuffer[(startPos + i) % PRE_ROLL_CAPACITY]
+                    }
+                    audioChunks.add(preRollData)
+                    totalSamplesRecorded += preRollFilledCount
+                }
+            }
+        }
+
+        isRecordingUtterance = true
     }
 
     suspend fun stopListeningAndGetResult(fallbackLang: Language): String = withContext(Dispatchers.IO) {
-        isRecording = false
+        // Trailing grace window (180ms) preserves the final syllable before closing utterance
+        delay(180)
+        isRecordingUtterance = false
 
-        // 1. Unblock native AudioRecord.read() by stopping the record object:
-        try {
-            audioRecord?.stop()
-        } catch (ignored: Exception) {}
-
-        // 2. Safely await recording job completion without deadlocking:
-        try {
-            withTimeoutOrNull(600) {
-                recordingJob?.join()
+        // Extract utterance snapshot without interrupting persistent AudioRecord
+        val allShorts: ShortArray
+        synchronized(utteranceLock) {
+            allShorts = ShortArray(totalSamplesRecorded)
+            var offset = 0
+            for (chunk in audioChunks) {
+                System.arraycopy(chunk, 0, allShorts, offset, chunk.size)
+                offset += chunk.size
             }
-        } catch (ignored: Exception) {}
-        recordingJob = null
+            audioChunks.clear()
+            totalSamplesRecorded = 0
+        }
 
-        val stream = currentStream
-        var finalTranscription = ""
+        if (allShorts.size < 3200) {
+            Log.w(TAG, "Utterance too short: ${allShorts.size} samples (<0.2s)")
+            return@withContext ""
+        }
 
-        if (stream != null) {
-            try {
-                stream.inputFinished()
-                val text = sttEngine.getResult(stream)
-                if (text.isNotBlank()) {
-                    finalTranscription = text.trim()
-                }
-                stream.release()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error finalizing neural stream: ${e.message}")
+        // Convert PCM 16-bit to Float [-1.0f, 1.0f]
+        val floatSamples = FloatArray(allShorts.size) { i ->
+            allShorts[i] / 32768.0f
+        }
+
+        // 1. Remove DC bias
+        var sumSamples = 0.0
+        for (s in floatSamples) sumSamples += s
+        val dcOffset = (sumSamples / floatSamples.size).toFloat()
+        for (i in floatSamples.indices) {
+            floatSamples[i] -= dcOffset
+        }
+
+        // 2. Compute RMS Energy
+        var sumSquares = 0.0
+        for (s in floatSamples) {
+            sumSquares += (s * s)
+        }
+        val rms = sqrt(sumSquares / floatSamples.size).toFloat()
+
+        Log.i(TAG, "Utterance stats: samples=${floatSamples.size}, duration=${floatSamples.size / 16000.0}s, rmsEnergy=$rms")
+
+        if (rms < 0.0003f) {
+            Log.i(TAG, "Near-zero acoustic energy recorded (rms=$rms), returning empty result")
+            return@withContext ""
+        }
+
+        // 3. RMS Gain Normalization (Target RMS = 0.15f)
+        if (rms in 0.0003f..0.12f) {
+            val targetRms = 0.15f
+            val calculatedGain = (targetRms / rms).coerceIn(1.0f, 35.0f)
+            for (i in floatSamples.indices) {
+                floatSamples[i] = (floatSamples[i] * calculatedGain).coerceIn(-0.95f, 0.95f)
             }
-            currentStream = null
+            Log.i(TAG, "Applied RMS Gain Boost: ${calculatedGain}x (RMS boosted from $rms to ${rms * calculatedGain})")
         }
 
-        if (finalTranscription.isBlank() && lastRecognizedText.isNotBlank()) {
-            finalTranscription = lastRecognizedText.trim()
-        }
+        Log.i(TAG, "Transcribing ${floatSamples.size / 16000.0}s with 100% Offline STT (lang=${activeLanguage.name})...")
+        val transcribed = sttEngine.transcribeAudio(floatSamples, activeLanguage)
 
-        // Tactical Disaster Engine Fallback:
-        // Always guarantee a valid tactical voice dispatch when PTT was pressed
-        if (finalTranscription.isBlank()) {
-            finalTranscription = sttEngine.getDisasterTacticalVoice(activeLanguage)
-            Log.i(TAG, "On-device tactical speech fallback dispatched: $finalTranscription")
-        }
-
-        Log.i(TAG, "Final On-Device Speech Transcription: '$finalTranscription'")
-        return@withContext finalTranscription
+        Log.i(TAG, "Final On-Device STT Result: '$transcribed'")
+        return@withContext transcribed
     }
 
     fun destroy() {
-        isRecording = false
-        recordingJob?.cancel()
+        isRecordingUtterance = false
+        isEngineRunning = false
+        audioLoopJob?.cancel()
         scope.cancel()
         try {
             audioRecord?.stop()
             audioRecord?.release()
             audioRecord = null
-            currentStream?.release()
-            currentStream = null
             sttEngine.release()
         } catch (ignored: Exception) {}
     }

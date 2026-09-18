@@ -4,6 +4,9 @@
 # Do not ignore sherpa-onnx aar required for the project build
 !app/libs/sherpa-onnx-1.13.8.aar
 
+# Large ML models (>100MB exceeds GitHub limits)
+*.onnx
+
 # Gradle files
 .gradle/
 build/
